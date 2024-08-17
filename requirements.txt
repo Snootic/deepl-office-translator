@@ -1,0 +1,6 @@
+pandas
+deepl
+python-docx
+openpyxl
+ttkbootstrap
+tk
