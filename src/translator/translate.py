@@ -9,29 +9,30 @@ class Translate:
     def translate_word(self, doc_path: str, source_lang: str = None, target_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         doc = Document(doc_path)
         
+        saving_iterations = 0
+        
         for paragraph in doc.paragraphs:
-            original_text = paragraph.text
-            translated_text = self.translate_text(original_text, source_lang, target_lang, glossary, **kwargs)
+            if paragraph.text and paragraph.text.strip() !="":
+                try:
+                    original_run = paragraph.runs[0]
+                except: pass
+                
+            translated_text = self.translate_text(paragraph.text, source_lang, target_lang, glossary, **kwargs)
             
-            try:
-                paragraph.clear()
-                paragraph.add_run(translated_text)
+            paragraph.text = translated_text
+            
+            for run in paragraph.runs:
+                run.style = original_run.style
+                run.bold = original_run.bold
+                run.italic = original_run.italic
+                run.underline = original_run.underline
+                run.font.size = original_run.font.size
+                run.font.color.rgb = original_run.font.color.rgb
+                run.font.name = original_run.font.name
                 
-                for run in paragraph.runs:
-                    new_run = paragraph.add_run(translated_text)
-                    new_run.bold = run.bold
-                    new_run.italic = run.italic
-                    new_run.underline = run.underline
-                    new_run.font.size = run.font.size
-                    new_run.font.color.rgb = run.font.color.rgb
-
-                print(original_text)
-                print(translated_text)
-                
-            except Exception as e:
-                print(f"Error: {e}")
-                
-            doc.save(doc_path)
+            if saving_iterations > 5:
+                doc.save(doc_path)
+                saving_iterations = 0
     
     def translate_excel(self, spreadsheet_path: str, source_column:str, target_column:str, source_lang: str = None, target_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         df = pd.read_excel(spreadsheet_path)
