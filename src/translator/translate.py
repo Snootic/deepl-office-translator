@@ -15,24 +15,27 @@ class Translate:
             if paragraph.text and paragraph.text.strip() !="":
                 try:
                     original_run = paragraph.runs[0]
-                except: pass
+                except Exception as e:
+                    print(e)
+
+                translated_text = self.translate_text(paragraph.text, source_lang, target_lang, glossary, **kwargs)
                 
-            translated_text = self.translate_text(paragraph.text, source_lang, target_lang, glossary, **kwargs)
-            
-            paragraph.text = translated_text
-            
-            for run in paragraph.runs:
-                run.style = original_run.style
-                run.bold = original_run.bold
-                run.italic = original_run.italic
-                run.underline = original_run.underline
-                run.font.size = original_run.font.size
-                run.font.color.rgb = original_run.font.color.rgb
-                run.font.name = original_run.font.name
+                paragraph.text = translated_text
                 
-            if saving_iterations > 5:
-                doc.save(doc_path)
-                saving_iterations = 0
+                for run in paragraph.runs:
+                    run.style = original_run.style
+                    run.bold = original_run.bold
+                    run.italic = original_run.italic
+                    run.underline = original_run.underline
+                    run.font.size = original_run.font.size
+                    run.font.color.rgb = original_run.font.color.rgb
+                    run.font.name = original_run.font.name
+
+                saving_iterations +=1
+
+                if saving_iterations > 5:
+                    doc.save(doc_path)
+                    saving_iterations = 0
     
     def translate_excel(self, spreadsheet_path: str, source_column:str, target_column:str, source_lang: str = None, target_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         df = pd.read_excel(spreadsheet_path)
