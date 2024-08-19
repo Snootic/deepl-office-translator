@@ -8,13 +8,15 @@ class Glossario():
         self.API_KEY = api_key
         self.glossario: deepl.GlossaryInfo
 
-    def create_json(self,file_path,file_name) -> None:
+    def create_from_excel(self,file_path,file_name,excluded_keys:list = None) -> None:
         df = pd.read_excel(file_path)
+
+        if not excluded_keys:
+            excluded_keys = []
 
         if df.shape[1] != 2:
             raise ValueError("O DataFrame deve ter exatamente duas colunas.")
 
-        valores_excluidos = ["Field Name", "English", "english", "ENGLISH", "Instructions", "Description","Spanish", "SPANISH", "spanish"]
 
         dicionario = {}
         for row in df.itertuples(index=False):
@@ -26,8 +28,8 @@ class Glossario():
                 print(e)
                 print(chave,valor)
                 
-            if (chave not in valores_excluidos and 
-                valor not in valores_excluidos and
+            if (chave not in excluded_keys and 
+                valor not in excluded_keys and
                 pd.notna(chave) and 
                 pd.notna(valor)):
                 if chave not in dicionario:
@@ -47,7 +49,7 @@ class Glossario():
         )
         return self.glossary
     
-    def load_json(self,json_file):
+    def load_json(self,json_file) -> dict:
         with open(json_file,encoding="utf-8") as json_dict:
             glossary = json.load(json_dict)
 
