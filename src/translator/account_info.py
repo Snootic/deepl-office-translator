@@ -8,8 +8,20 @@ class Account():
 
     def check_usage(self) -> list:
         usage = deepl.Translator(self.API_KEY).get_usage()
+        
+        usage_dict = {}
+        
+        if usage.character.valid:
+            usage_dict["used_characters"] = usage.character.count
+            usage_dict["characters_limit"] = usage.character.limit
+            usage_dict["characters_limit_reached"] = usage.character.limit_reached
+        
+        if usage.document.valid:
+            usage_dict["used_documents"] = usage.document.count
+            usage_dict["documents_limit"] = usage.document.limit
+            usage_dict["documents_limit_reached"] = usage.document.limit_reached
 
-        return [usage.character.count,usage.character.limit]
+        return usage_dict
 
 if __name__ == "__main__":
     help = """
@@ -60,5 +72,5 @@ if __name__ == "__main__":
             print(f"Invalid API key: {d}")
         except KeyError as k:
             print(f"missing parameter {k}")
-        except TypeError as t:
-            print(t)
+        # except TypeError as t:
+        #     print("TypeError: ",t)
