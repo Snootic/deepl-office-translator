@@ -1,5 +1,6 @@
 import pandas as pd
 import json, deepl
+import sys
 
 #todo add method overload
 
@@ -57,17 +58,31 @@ class Glossario():
     
     def get_glossaries(self):
         translator = deepl.Translator(self.API_KEY)
+        
+        glossaries = translator.list_glossaries()
+        
+        result = []
+        
+        for glossary in glossaries:
+            result.append(glossary.__dict__)
 
-        return translator.list_glossaries()
+        return result
 
-    def delete_glossary(self,glossary:deepl.GlossaryInfo):
+    def delete_glossary(self,glossary:deepl.GlossaryInfo|str):
         return deepl.Translator(self.API_KEY).delete_glossary(glossary=glossary)
     
-    def get_glossary_entries(self,glossary:deepl.GlossaryInfo):
+    def get_glossary_entries(self,glossary:deepl.GlossaryInfo|str):
         return deepl.Translator(self.API_KEY).get_glossary_entries(glossary)
     
-    def get_glossary_languages(self,glossary:deepl.GlossaryInfo):
-        return deepl.Translator(self.API_KEY).get_glossary_languages(glossary)
+    def get_glossary_languages(self):
+        glossary_languages = deepl.Translator(self.API_KEY).get_glossary_languages()
+        
+        languages = []
+        
+        for glossary_language in glossary_languages:
+            languages.append(glossary_language.__dict__)
+        
+        return languages
     
     def create_glossary_from_csv(self,csv_file_path:str,glossary_name:str,source_language:str,target_language:str):
         translator = deepl.Translator(self.API_KEY)
@@ -81,8 +96,4 @@ class Glossario():
             target_lang=target_language,
             csv_data=csv_file
         )
-        return self.glossary
-
-if __name__ == "__main__":
-    glossary = Glossario.create_glossary("My_glossary","EN","PT-BR",{"test":"teste","game":"jogo","keyboard":"teclado"})
-    print(glossary)
+        return self.glossary.__dict__
