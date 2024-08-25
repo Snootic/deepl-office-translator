@@ -137,7 +137,6 @@ if __name__ == "__main__":
         try:
             account = Glossario(args["key"])
             result = getattr(account,args["method"])(*call_arguments)
-            print(result)
             if type(result) != str:
                 result = json.dumps(obj=result,skipkeys=True, default=lambda o: '<not serializable>',indent=2)
 
