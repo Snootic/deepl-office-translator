@@ -22,6 +22,23 @@ class Account():
             usage_dict["documents_limit_reached"] = usage.document.limit_reached
 
         return usage_dict
+    
+    def get_languages(self,type: str):
+        """
+            type is either source or target
+        """
+        
+        languages_raw = []
+        
+        if type == "source":
+            languages_raw = deepl.Translator(self.API_KEY).get_source_languages()
+            
+        if type == "target":
+            languages_raw = deepl.Translator(self.API_KEY).get_target_languages()
+        
+        languages = [language.__dict__ for language in languages_raw]
+            
+        return languages
 
 if __name__ == "__main__":
     help = """
