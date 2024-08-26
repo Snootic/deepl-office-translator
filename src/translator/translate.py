@@ -8,38 +8,79 @@ class Translate:
     def __init__(self, api_key: str) -> None:
         self.translator = deepl.Translator(api_key)
 
-    def translate_word(self, doc_path: str, source_lang: str = None, target_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
+    def translate_doc(self,doc_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
+        output_path_list = doc_path.split('.')
+        doc_extension = output_path_list[-1]
+        output_path_list.pop()
+        output_path_list.append(f"Translated {target_lang}")
+        output_path_list.append(doc_extension)
+
+        output_path = output_path_list[0]
+        output_path_list.pop(0)
+
+        for item in output_path_list:
+            output_path += f".{item}"
+        try:
+            with open(doc_path, "rb") as in_file, open(output_path, "wb") as out_file:
+                self.translator.translate_document(
+                    in_file,
+                    out_file,
+                    source_lang=source_lang,
+                    target_lang=target_lang,
+                    glossary=glossary,
+                    **kwargs
+                )
+
+        except deepl.DocumentTranslationException as error:
+            doc_id = error.document_handle.document_id
+            doc_key = error.document_handle.document_key
+            print(f"Error after uploading ${error}, id: ${doc_id} key: ${doc_key}")
+        except deepl.DeepLException as error:
+            print(error)
+
+    def translate_word_preserve_format(self,doc_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         doc = Document(doc_path)
+
+        def translate_paragraph(element):
+            saving_iterations = 0
+            for paragraph in element.paragraphs:
+                if paragraph.text and paragraph.text.strip() !="":
+                    try:
+                        original_run = paragraph.runs[0]
+                    except Exception as e:
+                        print(e)
+
+                    translated_text = self.translate_text(paragraph.text, source_lang, target_lang, glossary, **kwargs)
+                    
+                    paragraph.text = translated_text
+                    
+                    for run in paragraph.runs:
+                        run.style = original_run.style
+                        run.bold = original_run.bold
+                        run.italic = original_run.italic
+                        run.underline = original_run.underline
+                        run.font.size = original_run.font.size
+                        run.font.color.rgb = original_run.font.color.rgb
+                        run.font.name = original_run.font.name
+
+                    saving_iterations +=1
+
+                    if saving_iterations > 5:
+                        doc.save(doc_path)
+                        saving_iterations = 0
+
+        def translate_tables():
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        translate_paragraph(cell)
+
+        translate_paragraph(doc)
+        translate_tables()
         
-        saving_iterations = 0
-        
-        for paragraph in doc.paragraphs:
-            if paragraph.text and paragraph.text.strip() !="":
-                try:
-                    original_run = paragraph.runs[0]
-                except Exception as e:
-                    print(e)
+        doc.save(doc_path)
 
-                translated_text = self.translate_text(paragraph.text, source_lang, target_lang, glossary, **kwargs)
-                
-                paragraph.text = translated_text
-                
-                for run in paragraph.runs:
-                    run.style = original_run.style
-                    run.bold = original_run.bold
-                    run.italic = original_run.italic
-                    run.underline = original_run.underline
-                    run.font.size = original_run.font.size
-                    run.font.color.rgb = original_run.font.color.rgb
-                    run.font.name = original_run.font.name
-
-                saving_iterations +=1
-
-                if saving_iterations > 5:
-                    doc.save(doc_path)
-                    saving_iterations = 0
-    
-    def translate_excel(self, spreadsheet_path: str, source_column:str, target_column:str, source_lang: str = None, target_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
+    def translate_excel(self, spreadsheet_path: str, source_column:str, target_column:str, target_lang: str,  source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         df = pd.read_excel(spreadsheet_path)
         
         df[target_column] = df[source_column].apply(lambda x: self.translate_text(x, source_lang=source_lang, target_lang=target_lang, glossary=glossary, **kwargs))
