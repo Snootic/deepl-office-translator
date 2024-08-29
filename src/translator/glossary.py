@@ -7,10 +7,10 @@ import sys
 class Glossario():
     def __init__(self, api_key:str) -> None:
         self.API_KEY = api_key
-        self.glossario: deepl.GlossaryInfo
+        self.glossario: deepl.GlossaryInfo | str
 
-    def create_from_excel(self,file_path,file_name,excluded_keys:list = None) -> None:
-        df = pd.read_excel(file_path)
+    def create_from_excel(self, spreadsheet_path, file_name, file_path, source_language, target_language, excluded_keys:list = None) -> None:
+        df = pd.read_excel(spreadsheet_path)
 
         if not excluded_keys:
             excluded_keys = []
@@ -36,8 +36,15 @@ class Glossario():
                 if chave not in dicionario:
                     dicionario[chave] = valor
 
-        with open(f"{file_name}.json", 'w',encoding='utf-8') as teste:
-            json.dump(dicionario, teste, indent=2,ensure_ascii=False)
+        with open(file_path, 'w',encoding='utf-8') as file:
+            json.dump(dicionario, file, indent=2,ensure_ascii=False)
+            
+        json_file = self.load_json(file_path)
+        
+        glossary = self.create_glossary(glossary_name=file_name,source_language=source_language, target_language=target_language, glossary=json_file)
+        
+        return glossary.__dict__
+            
 
     def create_glossary(self,glossary_name:str,source_language:str,target_language:str,glossary:dict):
         translator = deepl.Translator(self.API_KEY)
@@ -115,7 +122,7 @@ if __name__ == "__main__":
     call_arguments = []
     for arg in sys.argv:
         try:
-            arg = arg.split("=")
+            arg = arg.split("=",1)
             if arg[0] != sys.argv[0] and arg[0] not in available_args:
                 raise ValueError
             if arg[0] == "args":

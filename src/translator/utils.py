@@ -57,7 +57,7 @@ if __name__ == "__main__":
     call_arguments = []
     for arg in sys.argv:
         try:
-            arg = arg.split("=")
+            arg = arg.split("=",1)
             if arg[0] != sys.argv[0] and arg[0] not in available_args:
                 raise ValueError
             if arg[0] == "args":

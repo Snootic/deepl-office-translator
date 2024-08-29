@@ -8,18 +8,7 @@ class Translate:
     def __init__(self, api_key: str) -> None:
         self.translator = deepl.Translator(api_key)
 
-    def translate_doc(self,doc_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
-        output_path_list = doc_path.split('.')
-        doc_extension = output_path_list[-1]
-        output_path_list.pop()
-        output_path_list.append(f"Translated {target_lang}")
-        output_path_list.append(doc_extension)
-
-        output_path = output_path_list[0]
-        output_path_list.pop(0)
-
-        for item in output_path_list:
-            output_path += f".{item}"
+    def translate_doc(self,doc_path: str, output_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         try:
             with open(doc_path, "rb") as in_file, open(output_path, "wb") as out_file:
                 self.translator.translate_document(
@@ -38,7 +27,7 @@ class Translate:
         except deepl.DeepLException as error:
             print(error)
 
-    def translate_word_preserve_format(self,doc_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
+    def translate_word_preserve_format(self,doc_path: str, output_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         doc = Document(doc_path)
 
         def translate_paragraph(element):
@@ -80,12 +69,12 @@ class Translate:
         
         doc.save(doc_path)
 
-    def translate_excel(self, spreadsheet_path: str, source_column:str, target_column:str, target_lang: str,  source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
+    def translate_excel(self, spreadsheet_path: str, output_path: str, source_column:str, target_column:str, target_lang: str,  source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         df = pd.read_excel(spreadsheet_path)
         
         df[target_column] = df[source_column].apply(lambda x: self.translate_text(x, source_lang=source_lang, target_lang=target_lang, glossary=glossary, **kwargs))
 
-        df.to_excel('translated_spreadsheet.xlsx', index=False)  
+        df.to_excel(output_path, index=False)  
            
     def translate_text(self, text: str, source_lang: str = None, target_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         try:
@@ -113,7 +102,7 @@ if __name__ == "__main__":
     call_arguments = []
     for arg in sys.argv:
         try:
-            arg = arg.split("=")
+            arg = arg.split("=",1)
             if arg[0] != sys.argv[0] and arg[0] not in available_args:
                 raise ValueError
             if arg[0] == "args":
