@@ -33,3 +33,5 @@ __pycache__/*
 
 *.dist/*
 *.so
+
+!tauri.conf.json
