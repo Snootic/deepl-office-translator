@@ -25,9 +25,9 @@ class Translate:
             doc_key = error.document_handle.document_key
             print(f"Error after uploading ${error}, id: ${doc_id} key: ${doc_key}")
         except deepl.DeepLException as error:
-            print(error)
+            raise error
 
-    def translate_word_preserve_format(self,doc_path: str, output_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
+    def translate_word_preserve_format(self,doc_path: str, output_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo | str = None, **kwargs):
         doc = Document(doc_path)
 
         def translate_paragraph(element):
@@ -36,11 +36,11 @@ class Translate:
                 if paragraph.text and paragraph.text.strip() !="":
                     try:
                         original_run = paragraph.runs[0]
-                    except Exception as e:
-                        print(e)
+                    except:
+                        pass
 
                     translated_text = self.translate_text(paragraph.text, source_lang, target_lang, glossary, **kwargs)
-                    
+                                        
                     paragraph.text = translated_text
                     
                     for run in paragraph.runs:
@@ -55,7 +55,7 @@ class Translate:
                     saving_iterations +=1
 
                     if saving_iterations > 5:
-                        doc.save(doc_path)
+                        doc.save(output_path)
                         saving_iterations = 0
 
         def translate_tables():
@@ -67,7 +67,7 @@ class Translate:
         translate_paragraph(doc)
         translate_tables()
         
-        doc.save(doc_path)
+        doc.save(output_path)
 
     def translate_excel(self, spreadsheet_path: str, output_path: str, source_column:str, target_column:str, target_lang: str,  source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         df = pd.read_excel(spreadsheet_path)
@@ -80,9 +80,9 @@ class Translate:
         try:
             result = self.translator.translate_text(text, source_lang=source_lang, target_lang=target_lang, glossary=glossary, **kwargs)
             return result.text
-        except Exception as e:
-            print(f"Translation Error: {e}")
-            print(f"Failed Text: {text}")
+        except deepl.DeepLException as d:
+            raise d
+        except:
             return text
 
 if __name__ == "__main__":
@@ -136,3 +136,5 @@ if __name__ == "__main__":
             print(f"missing parameter {k}")
         except TypeError as t:
             print(t)
+        except Exception as e:
+            print("Ocorreu um erro: ", e)
