@@ -3,11 +3,18 @@ import deepl
 import pandas as pd
 from docx import Document
 from pptx import Presentation
+from openai import OpenAI
 import sys
 
 class Translate:
-    def __init__(self, api_key: str) -> None:
-        self.translator = deepl.Translator(api_key)
+    # All returns must be json parsable
+    
+    def __init__(self, model: str, api_key: str, **kwargs) -> None:
+        self.model = model
+        if model.__contains__("gpt"):
+            self.client = OpenAI(api_key=api_key, **kwargs)
+        else:
+            self.translator = deepl.Translator(api_key)
 
     def translate_pptx(self, presentation_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo | str = None, **kwargs):
         prs = Presentation(presentation_path)
@@ -15,41 +22,23 @@ class Translate:
         saving_iterations = 0
         print(len(prs.slides))
 
-        # try:
-        #     for slide in prs.slides:
-        #         for shape in slide.shapes:
-        #             if shape.has_text_frame:
-        #                 for paragraph in shape.text_frame.paragraphs:
-        #                     for run in paragraph.runs:
-        #                         original_text = run.text
-        #                         translated_text = self.translate_text(original_text, source_lang, target_lang, glossary, **kwargs)
-        #                         run.text = translated_text
-        #                         print(original_text)
-        #         saving_iterations+=1
-        # except deepl.QuotaExceededException:
-        #     print("falhou,salvando")
-        #     prs.save(presentation_path)
+        try:
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if shape.has_text_frame:
+                        for paragraph in shape.text_frame.paragraphs:
+                            for run in paragraph.runs:
+                                original_text = run.text
+                                translated_text = self.translate_text(original_text, source_lang, target_lang, glossary, **kwargs)
+                                run.text = translated_text
+                                print(original_text)
+                saving_iterations+=1
+        except deepl.QuotaExceededException:
+            print("falhou,salvando")
+            prs.save(presentation_path)
 
-        # print(f"concluido, salvando {saving_iterations}")
-        # prs.save(presentation_path)
-                    # text = shape.text
-                    # # translated_text = self.translate_text(text, source_lang, target_lang, glossary, **kwargs)
-
-                    # translated_text = "ALO TESTANDO"
-                
-                    # print(text)
-
-                    # print(translated_text)
-
-                    # shape.text = translated_text
-
-                    # print(shape.text)
-
-                    # saving_iterations +=1
-
-                    # if saving_iterations > 5:
-                    #     prs.save(presentation_path)
-                    #     saving_iterations = 0
+        print(f"concluido, salvando {saving_iterations}")
+        prs.save(presentation_path)
 
         prs.save('edited_presentation.pptx')
 
@@ -132,7 +121,7 @@ class Translate:
 
         df.to_excel(output_path, index=False)  
            
-    def translate_text(self, text: str, source_lang: str = None, target_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
+    def deepl_translate_text(self, text: str, source_lang: str = None, target_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         try:
             result = self.translator.translate_text(text, source_lang=source_lang, target_lang=target_lang, glossary=glossary, **kwargs)
             return result.text
@@ -141,6 +130,32 @@ class Translate:
         except:
             return text
 
+    def gpt_translate_text(self, text: str, target_language:str, source_language:str, context: str | None = None):
+        
+        if context:
+            input = context + "(text below): " + text
+        else:
+            input = text
+        completion = self.client.chat.completions.create(
+            model=self.model,
+            
+            messages=[
+                {
+                    "role": "system", 
+                    "content": f"""You are the best poliglot translator in the world, you translate like no one. 
+                        You adapt all language expressions from all diferent cultures and countries, and make all text sound like natural to native speakers. 
+                        You preserve the format of the text, leaving it the way it was written, transmitting the feeling and meaning of the original text to the translated one.
+                        Translate the text below to {target_language} from {source_language}. Return only the translated text"""
+                },
+                {
+                    "role": "user",
+                    "content": input
+                }
+            ]
+        )
+        
+        return completion.choices[0].message.model_dump_json()
+    
 if __name__ == "__main__":
     help = """
         you must pass an argument to this program!

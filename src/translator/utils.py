@@ -1,8 +1,10 @@
 import json
 import deepl
+import openai
+from openai import OpenAI
 import sys
 
-class Account():
+class DeeplAccount():
     def __init__(self,api_key:str) -> None:
         self.API_KEY = api_key
 
@@ -40,7 +42,30 @@ class Account():
             
         return languages
 
-if __name__ == "__main__":
+class GPTAccount():
+    def __init__(self,api_key:str) -> None:
+        self.API_KEY = api_key
+        self.client = OpenAI(api_key=api_key)
+        
+    def models(self):
+        gpt_models = self.client.models.list()
+        
+        models = []
+        for model in gpt_models:
+            if model.id.__contains__("gpt-4o"):
+                models.append(model.id)
+
+        gpt_models = {"gpt_models": models}
+        
+        print(gpt_models)
+        
+        return models
+    
+    def account_billing():
+        #TODO
+        pass
+
+if __name__ == "__main__": 
     help = """
         you must pass an argument to this program!
         
@@ -48,11 +73,12 @@ if __name__ == "__main__":
         
         available commands:
         "help": show this
+        "tool": the tool you want to use. It can be either gpt or deepl for now
         "key": the account api key
         "method": the function you want to access
         "args": the function arguments you want to pass if available
     """
-    available_args = ["help","key","method","args"]
+    available_args = ["help","tool","key","method","args"]
     args = {}
     call_arguments = []
     for arg in sys.argv:
@@ -77,7 +103,12 @@ if __name__ == "__main__":
     
     else:
         try:
-            account = Account(args["key"])
+            if args["tool"] == "gpt":
+                account = GPTAccount(args["key"])
+            elif args["tool"] == "deepl":
+                account = DeeplAccount(args["key"])
+            else:
+                raise(KeyError("tool is invalid"))
             result = getattr(account,args["method"])(*call_arguments)
             # print(result)
             if type(result) != str:
@@ -88,6 +119,6 @@ if __name__ == "__main__":
         except deepl.DeepLException as d:
             print(f"Invalid API key: {d}")
         except KeyError as k:
-            print(f"missing parameter {k}")
+            print(f"something wrong with parameter: {k}")
         # except TypeError as t:
         #     print("TypeError: ",t)
