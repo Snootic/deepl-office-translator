@@ -1,9 +1,15 @@
 let apiKey;
 let keys;
 
-async function initializeKeys() {
+async function initializeKeys(model) {
+    
     const { invoke } = window.__TAURI__.tauri;
-    keys = await invoke('get_keys');
+    if (model.includes("gpt")){
+        keys = await invoke('get_chatgpt_keys');
+    }else{
+        keys = await invoke('get_deep_keys');
+    }
+    
     apiKey = keys[0].key;
 }
 
