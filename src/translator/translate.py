@@ -29,7 +29,10 @@ class Translate:
                         for paragraph in shape.text_frame.paragraphs:
                             for run in paragraph.runs:
                                 original_text = run.text
-                                translated_text = self.translate_text(original_text, source_lang, target_lang, glossary, **kwargs)
+                                if self.model.__contains__("gpt"):
+                                    translated_text = self.gpt_translate_text(original_text, target_lang, source_lang, **kwargs)
+                                else:
+                                    translated_text = self.deepl_translate_text(original_text, source_lang, target_lang, glossary, **kwargs)
                                 run.text = translated_text
                                 print(original_text)
                 saving_iterations+=1
@@ -154,7 +157,7 @@ class Translate:
             ]
         )
         
-        return completion.choices[0].message.model_dump_json()
+        return completion.choices[0].message.content
     
 if __name__ == "__main__":
     help = """
@@ -168,7 +171,7 @@ if __name__ == "__main__":
         "method": the function you want to access
         "args": the function arguments you want to pass if available
     """
-    available_args = ["help","key","method","args"]
+    available_args = ["help","model","key","method","args"]
     args = {}
     call_arguments = []
     for arg in sys.argv:
@@ -187,13 +190,13 @@ if __name__ == "__main__":
                 pass
             else:
                 print("invalid argument or missing parameter")
-            
+      
     if len(sys.argv) < 2 or "help" in sys.argv:
         print(help)
     
     else:
         try:
-            account = Translate(args["key"])
+            account = Translate(args["model"],args["key"])
             result = getattr(account,args["method"])(*call_arguments)
             # print(result)
             if type(result) != str:
