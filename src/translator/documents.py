@@ -33,7 +33,7 @@ class File:
         try:
             prs = Presentation(file)
         except Exception as e:
-            print(e)
+            raise(e)
 
         properties_dir = dir(prs.core_properties)
 
@@ -67,7 +67,7 @@ class File:
         try:
             file = Document(file)
         except Exception as e:
-                print(f"an error occured trying to import the file: {e}")
+            raise(e)
 
         properties_dir = dir(file.core_properties)
         
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     
     else:
         try:
-            account = File(args["key"])
+            account = File()
             result = getattr(account,args["method"])(*call_arguments)
             # print(result)
             if type(result) != str:
