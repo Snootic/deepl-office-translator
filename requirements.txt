@@ -4,3 +4,4 @@ python-docx
 openpyxl
 python-pptx
 openai
+tiktoken
