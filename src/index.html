@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="message.css" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DeepL Office Translator</title>
+  <title>AI Office Translator</title>
   <script type="module" src="/main.js" defer></script>
   <script type="module" src="/account_info.js" defer></script>
   <script type="module" src="/get_languages.js" defer></script>
@@ -18,7 +18,12 @@
     <h1>Tradutor de arquivos</h1>
   </header>
   <main>
-    <p>Traduza arquivos em poucos cliques com DeepL</p>
+    <p>Traduza arquivos em poucos cliques com DeepL e ChatGPT</p>
+
+    <div class="model-div">
+      <label for="model-selector">Modelo</label>
+      <select class="select" name="model-selector" id="model-selector"></select>
+    </div>
 
     <div class="quota-info">
       <h4>Uso de cota</h4>
@@ -26,74 +31,88 @@
       <p id="limit-reached"></p>
     </div>
 
-    <form class="column" id="file-form">
-      <div class="input-button-container">
+    <div id="translator-div">
+      <div id="translator-form-div">
+        <form class="column" id="file-form">
+          <div class="input-button-container">
 
-        <div class="required-parameters">
-          <label for="source-language">Idioma original</label>
-          <select class="select" name="source-language" id="source-language"></select>
-          <label for="target-language">Idioma alvo</label>
-          <select class="select" name="target-language" id="target-language"></select>
-        </div>
+            <div class="required-parameters">
+              <label for="source-language">Idioma original</label>
+              <select class="select" name="source-language" id="source-language"></select>
+              <label for="target-language">Idioma alvo</label>
+              <select class="select" name="target-language" id="target-language"></select>
+            </div>
 
-        <div class="input-div">
-          <label class="label-input" for="glossary-select">Glossário (opcional): </label>
-          <div class="glossary-div">
-          <select class="select" id="glossary-select" name="glossary-select">
-            <option></option>
-          </select>
-          <button id="criar-glossario" type="button">Criar um glossário</button>
+            <div class="input-div" id="glossary-div">
+              <label class="label-input" for="glossary-select">Glossário (opcional): </label>
+              <div class="glossary-div">
+                <select class="select" id="glossary-select" name="glossary-select">
+                  <option></option>
+                </select>
+                <button id="criar-glossario" type="button">Criar um glossário</button>
+              </div>
+            </div>
+
+            <div class="input-div">
+              <label class="label-input" for="original-file-input">Arquivo original: </label>
+              <input class="file-input" id="original-file-input" name="original-file-input" type="file" />
+            </div>
+
+            <div class="input-div">
+              <label class="label-input" for="target-file-input">Caminho do arquivo traduzido: </label>
+              <input class="file-input" id="target-file-input" name="target-file-input" type="text" />
+            </div>
+            <button id="translate-button" type="submit">Traduzir</button>
           </div>
-        </div>
-
-        <div class="input-div">
-          <label class="label-input" for="original-file-input">Arquivo original: </label>
-          <input class="file-input" id="original-file-input" name="original-file-input" type="file"/>
-        </div>
-
-        <div class="input-div">
-          <label class="label-input" for="target-file-input">Caminho do arquivo traduzido: </label>
-          <input class="file-input" id="target-file-input" name="target-file-input" type="text"/>
-        </div>
-        <button id="translate-button" type="submit">Traduzir</button>
+        </form>
       </div>
-    </form>
 
-    <div class="confirm-submit" id="confirm-submit">
+      <div class="confirm-submit" id="confirm-submit">
         <h2>Confirmar parâmetros de tradução</h1>
-        <div class="input-div">
-          <label class="label-input" for="source_language_confirm">Idioma de origem</label>
-          <input class="file-input" type="text" name="source_language_confirm" id="source_language_confirm">
-        </div>
-        
-        <div class="input-div">
-          <label class="label-input" for="target_language_confirm">Idioma alvo</label>
-          <input class="file-input" type="text" name="target_language_confirm" id="target_language_confirm" readonly>
-        </div>
-        
-        <div class="input-div">
-          <label class="label-input" for="glossary_confirm">Glossário</label>
-          <input class="file-input" type="text" name="glossary_confirm" id="glossary_confirm" readonly>
-        </div>
-        
-        <div class="input-div">
-          <label class="label-input" for="original_file_confirm">Arquivo original</label>
-          <input class="file-input" type="text" name="original_file_confirm" id="original_file_confirm" readonly>
-        </div>
+          <div class="input-div">
+            <label class="label-input" for="source_language_confirm">Idioma de origem</label>
+            <input class="file-input" type="text" name="source_language_confirm" id="source_language_confirm">
+          </div>
 
-        <div class="input-div">
-          <label class="label-input" for="target_file_confirm">Arquivo destino</label>
-          <input class="file-input" type="text" name="target_file_confirm" id="target_file_confirm" readonly>
-        </div>
-        
-        <div class="confirm-button-container">
-          <button id="cancel-translation">Cancelar</button>
-          <button id="confirm-translation">Confirmar</button>
+          <div class="input-div">
+            <label class="label-input" for="target_language_confirm">Idioma alvo</label>
+            <input class="file-input" type="text" name="target_language_confirm" id="target_language_confirm" readonly>
+          </div>
+
+          <div class="input-div">
+            <label class="label-input" for="glossary_confirm">Glossário</label>
+            <input class="file-input" type="text" name="glossary_confirm" id="glossary_confirm" readonly>
+          </div>
+
+          <div class="input-div">
+            <label class="label-input" for="original_file_confirm">Arquivo original</label>
+            <input class="file-input" type="text" name="original_file_confirm" id="original_file_confirm" readonly>
+          </div>
+
+          <div class="input-div">
+            <label class="label-input" for="target_file_confirm">Arquivo destino</label>
+            <input class="file-input" type="text" name="target_file_confirm" id="target_file_confirm" readonly>
+          </div>
+
+          <div class="confirm-button-container">
+            <button id="cancel-translation">Cancelar</button>
+            <button id="confirm-translation">Confirmar</button>
+          </div>
       </div>
-        
 
+      <div id="document-info-div">
+        <div id="docx-info-div">
+
+        </div>
+        <div id="xlsx-info-div">
+
+        </div>
+        <div id="pptx-info-div">
+
+        </div>
+      </div>
     </div>
-
+    
     <p id="msg"></p>
   </main>
 </body>
