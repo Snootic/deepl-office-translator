@@ -1,10 +1,10 @@
 const { invoke } = window.__TAURI__.tauri;
 import { initializeKeys, apiKey, keys } from "./getApiKeys.js";
 
-await initializeKeys()
+await initializeKeys("deepl")
 
 
-function fill_select(element, list){
+function fill_glossary_select(element, list){
     list.forEach(glossary => {
         let option = document.createElement("option");
         option.value = glossary._glossary_id
@@ -47,7 +47,7 @@ async function get_glossaries() {
         if (parsedResult.success) {
             const select = document.getElementById("glossary-select")
 
-            fill_select(select, parsedResult.output)
+            fill_glossary_select(select, parsedResult.output)
 
         } else {
             console.error('Error:', parsedResult.output);
@@ -56,6 +56,7 @@ async function get_glossaries() {
         console.error('Failed to get data:', error);
     }
 }
+
 
 get_glossaries()
 

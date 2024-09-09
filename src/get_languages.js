@@ -1,7 +1,7 @@
 const { invoke } = window.__TAURI__.tauri;
 import { initializeKeys, apiKey, keys } from "./getApiKeys.js";
 
-await initializeKeys()
+await initializeKeys("deepl")
 
 function fill_select(element, list) {
     list.forEach(language => {
