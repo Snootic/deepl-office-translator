@@ -56,10 +56,8 @@ class GPTAccount():
                 models.append(model.id)
 
         gpt_models = {"gpt_models": models}
-        
-        print(gpt_models)
-        
-        return models
+                
+        return gpt_models
     
     def account_billing():
         #TODO
