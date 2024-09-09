@@ -3,3 +3,4 @@ deepl
 python-docx
 openpyxl
 python-pptx
+openai
