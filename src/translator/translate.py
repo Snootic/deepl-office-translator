@@ -4,6 +4,7 @@ import pandas as pd
 from docx import Document
 from pptx import Presentation
 from openai import OpenAI
+from io import BytesIO
 import sys
 
 class Translate:
@@ -21,22 +22,99 @@ class Translate:
 
         saving_iterations = 0
         print(len(prs.slides))
-
+        
+        word_bank = {}
         try:
             for slide in prs.slides:
                 for shape in slide.shapes:
+                    
                     if shape.has_text_frame:
                         for paragraph in shape.text_frame.paragraphs:
                             for run in paragraph.runs:
-                                original_text = run.text
-                                if self.model.__contains__("gpt"):
-                                    translated_text = self.gpt_translate_text(original_text, target_lang, source_lang, **kwargs)
-                                else:
-                                    translated_text = self.deepl_translate_text(original_text, source_lang, target_lang, glossary, **kwargs)
+                                original_text = run.text.rstrip()
+                                
+                                if not original_text.strip() or original_text.isdigit():
+                                    continue
+                                
+                                if word_bank.get(original_text):
+                                    run.text = word_bank[original_text]
+                                    continue
+                                        
+                                translated_text = self.translate_text(original_text, target_lang, source_lang, **kwargs)
+                                
+                                word_bank[original_text] = translated_text
+                                    
                                 run.text = translated_text
-                                print(original_text)
+                                    
+                    if shape.has_table:
+                        table = shape.table 
+                        table_data = []
+                        for row in table.rows:
+                            for cell in row.cells:
+                                original_text = cell.text.rstrip()
+                                
+                                if not original_text.strip() or original_text.isdigit():
+                                    continue
+                                
+                                if word_bank.get(original_text):
+                                    cell.text = word_bank[original_text]
+                                    continue
+                                
+                                translated_text = self.translate_text(original_text, target_lang, source_lang, **kwargs)
+                                
+                                word_bank[original_text] = translated_text
+                                    
+                                cell.text = translated_text
+                        
+                    if shape.has_chart:
+                        try:
+                            blob_stream = BytesIO(shape.chart._workbook.xlsx_part.blob)
+                            df = pd.read_excel(blob_stream)
+                            columns = df.columns.tolist()
+                            
+                            for index, column in enumerate(columns):
+                                if not column.strip() or column.isdigit():
+                                    continue
+                                
+                                if word_bank.get(column):
+                                    columns[index] = word_bank[column]
+                                    continue
+                                
+                                new_column = self.translate_text(column, target_lang, source_lang, **kwargs)
+                                
+                                word_bank[column] = new_column
+                                
+                                columns[index] = new_column
+                                
+                            row_data = df.values.tolist()
+                            for row in row_data:
+                                for index, data in enumerate(row):
+                                    if isinstance(data, (int,float)) or not data.strip():
+                                        continue
+                                    
+                                    if word_bank.get(data):
+                                        row[index] = word_bank[data]
+                                        continue
+                                    
+                                    row[index] = self.translate_text(data, target_lang, source_lang, **kwargs)
+                                
+                                    word_bank[data] = row[index]
+                            
+                            new_df = pd.DataFrame(data=row_data,columns=columns)
+                            
+                            blob = BytesIO()
+                            new_df.to_excel(blob,index=False, engine='xlsxwriter')
+                            blob.seek(0)
+                            
+                            blob_data = blob.getvalue()
+                            
+                            shape.chart._workbook.xlsx_part.blob = blob_data
+                            
+                        except:
+                            continue
+                                            
                 saving_iterations+=1
-        except deepl.QuotaExceededException:
+        except:
             print("falhou,salvando")
             prs.save(presentation_path)
 
@@ -159,6 +237,11 @@ class Translate:
         
         return completion.choices[0].message.content
     
+    def translate_text(self, *args, **kwargs):
+        if self.model.__contains__("gpt"):
+            return self.gpt_translate_text(*args,**kwargs)
+        return self.deepl_translate_text(*args,**kwargs)
+    
 if __name__ == "__main__":
     help = """
         you must pass an argument to this program!
@@ -191,6 +274,9 @@ if __name__ == "__main__":
             else:
                 print("invalid argument or missing parameter")
       
+    print(args)
+    print(call_arguments)
+    
     if len(sys.argv) < 2 or "help" in sys.argv:
         print(help)
     
