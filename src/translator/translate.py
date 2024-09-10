@@ -21,7 +21,7 @@ class Translate:
         prs = Presentation(presentation_path)
 
         saving_iterations = 0
-        print(len(prs.slides))
+        # print(len(prs.slides))
         
         word_bank = {}
         try:
@@ -41,6 +41,8 @@ class Translate:
                                     continue
                                         
                                 translated_text = self.translate_text(original_text, target_lang, source_lang, **kwargs)
+                                
+                                # translated_text = "isso é um parágrafo"
                                 
                                 word_bank[original_text] = translated_text
                                     
@@ -62,6 +64,8 @@ class Translate:
                                 
                                 translated_text = self.translate_text(original_text, target_lang, source_lang, **kwargs)
                                 
+                                # translated_text = "isso é uma célula de tabela"
+                                
                                 word_bank[original_text] = translated_text
                                     
                                 cell.text = translated_text
@@ -69,6 +73,7 @@ class Translate:
                     if shape.has_chart:
                         try:
                             blob_stream = BytesIO(shape.chart._workbook.xlsx_part.blob)
+                            sheets = pd.ExcelFile(blob_stream).sheet_names
                             df = pd.read_excel(blob_stream)
                             columns = df.columns.tolist()
                             
@@ -81,6 +86,8 @@ class Translate:
                                     continue
                                 
                                 new_column = self.translate_text(column, target_lang, source_lang, **kwargs)
+                                
+                                # new_column = "isso é uma coluna"
                                 
                                 word_bank[column] = new_column
                                 
@@ -97,28 +104,28 @@ class Translate:
                                         continue
                                     
                                     row[index] = self.translate_text(data, target_lang, source_lang, **kwargs)
+                                    
+                                    # row[index] = "isso é uma linha"
                                 
                                     word_bank[data] = row[index]
                             
                             new_df = pd.DataFrame(data=row_data,columns=columns)
                             
                             blob = BytesIO()
-                            new_df.to_excel(blob,index=False, engine='xlsxwriter')
+                            new_df.to_excel(blob,index=False, sheet_name=sheets[0], engine='xlsxwriter')
                             blob.seek(0)
                             
                             blob_data = blob.getvalue()
                             
                             shape.chart._workbook.xlsx_part.blob = blob_data
                             
-                        except:
+                        except Exception as e:
                             continue
                                             
                 saving_iterations+=1
         except:
-            print("falhou,salvando")
             prs.save(presentation_path)
 
-        print(f"concluido, salvando {saving_iterations}")
         prs.save(presentation_path)
 
         prs.save('edited_presentation.pptx')
@@ -273,9 +280,6 @@ if __name__ == "__main__":
                 pass
             else:
                 print("invalid argument or missing parameter")
-      
-    print(args)
-    print(call_arguments)
     
     if len(sys.argv) < 2 or "help" in sys.argv:
         print(help)
