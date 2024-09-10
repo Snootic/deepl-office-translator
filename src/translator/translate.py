@@ -128,7 +128,9 @@ class Translate:
 
         prs.save(output_path)
 
-    def translate_doc(self,doc_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
+    def deepl_translate_doc(self,doc_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
+        if self.model.__contains__("gpt"):
+            raise(TypeError("model not compatible with this type of translation"))
         output_path_list = doc_path.split('.')
         doc_extension = output_path_list[-1]
         output_path_list.pop()
