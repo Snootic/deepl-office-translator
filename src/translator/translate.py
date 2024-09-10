@@ -185,20 +185,17 @@ class Translate:
                         run.font.color.rgb = original_run.font.color.rgb
                         run.font.name = original_run.font.name
 
-                    saving_iterations +=1
-
-                    if saving_iterations > 5:
-                        doc.save(output_path)
-                        saving_iterations = 0
-
         def translate_tables():
             for table in doc.tables:
                 for row in table.rows:
                     for cell in row.cells:
                         translate_paragraph(cell)
 
-        translate_paragraph(doc)
-        translate_tables()
+        try:
+            translate_paragraph(doc)
+            translate_tables()
+        except:
+            doc.save(output_path)
         
         doc.save(output_path)
 
