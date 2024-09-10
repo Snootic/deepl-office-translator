@@ -17,7 +17,7 @@ class Translate:
         else:
             self.translator = deepl.Translator(api_key)
 
-    def translate_pptx(self, presentation_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo | str = None, **kwargs):
+    def translate_pptx(self, presentation_path: str, output_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo | str = None, **kwargs):
         prs = Presentation(presentation_path)
 
         saving_iterations = 0
@@ -124,11 +124,9 @@ class Translate:
                                             
                 saving_iterations+=1
         except:
-            prs.save(presentation_path)
+            prs.save(output_path)
 
-        prs.save(presentation_path)
-
-        prs.save('edited_presentation.pptx')
+        prs.save(output_path)
 
     def translate_doc(self,doc_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         output_path_list = doc_path.split('.')
