@@ -6,22 +6,24 @@
     justify-content: center;
     min-width: 250px;
     background-color: #0f0f0f98;
-    color: white;
+    color: rgb(255, 255, 255);
     text-align: center;
     border-radius: 20px;
     padding: 20px;
     z-index: 1;
     bottom: 5%;
-    font-size: 0.5rem;
+    font-size: 1rem;
+    align-self: center;
   }
     
   .showMessage {
     visibility: visible;
-    animation: fadein 1s, fadeout 1s 2s;
+    animation: fadein 1s
   }
   
   .hideMessage {
     visibility: hidden;
+    animation: fadeout 1s;
   }
 
   @keyframes fadein {
