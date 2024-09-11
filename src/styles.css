@@ -95,8 +95,8 @@ button:active {
   position:absolute;
   display: none;
   flex-direction: column;
-  width: 50%;
-  height: 85%;
+  width: 70%;
+  height: auto;
   align-items: center;
   justify-content: center;
   border-radius: 15px;
