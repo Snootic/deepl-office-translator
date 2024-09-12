@@ -193,7 +193,7 @@ class Translate:
                     except:
                         pass
 
-                    translated_text = self.translate_text(paragraph.text, source_lang, target_lang, glossary, **kwargs)
+                    translated_text = self.translate_text(paragraph.text, target_lang, source_lang, glossary=glossary, **kwargs)
                                         
                     paragraph.text = translated_text
                     
