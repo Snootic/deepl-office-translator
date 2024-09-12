@@ -30,6 +30,9 @@ function updateConfirmFields(formData) {
 }
 
 async function handleTranslation(formData) {
+    if (document.getElementById("model-selector").value.includes("gpt")){
+        await initializeKeys("gpt");
+    }
     const originalFile = formData.get("original-file-input");
     if (!originalFile) {
         console.error("Nenhum arquivo foi selecionado.");
@@ -40,18 +43,20 @@ async function handleTranslation(formData) {
     reader.readAsArrayBuffer(originalFile);
     reader.onload = async function () {
         const fileData = new Uint8Array(reader.result);
+        let args = [formData.get("target-file-input"),formData.get("target-language"),formData.get("source-language")]
+        let model = document.getElementById("model-selector").value
         try {
-            const result = await invoke("translate_doc_alt", {
-                key: apiKey,
+            const result = await invoke("translate_document", {
+                apiKey: apiKey,
+                model: model,
                 fileData: Array.from(fileData),
                 fileName: originalFile.name,
-                fileOutput: formData.get("target-file-input"),
-                sourceLanguage: formData.get("source-language"),
-                targetLanguage: formData.get("target-language"),
-                glossaryId: formData.get("glossary-select"),
+                args: args,
+                kwargs: null
             });
 
             const parsedResult = JSON.parse(result);
+            console.log(parsedResult.output);
             message(parsedResult.success ? "Arquivo traduzido com sucesso!" : "Falha na tradução :(");
         } catch (error) {
             console.error("Erro:", error);
