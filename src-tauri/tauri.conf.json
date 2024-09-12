@@ -5,8 +5,8 @@
     "withGlobalTauri": true
   },
   "package": {
-    "productName": "deepl-office-translator",
-    "version": "0.1.0"
+    "productName": "AI-translator",
+    "version": "0.2.0"
   },
   "tauri": {
     "allowlist": {
@@ -34,7 +34,7 @@
     },
     "windows": [
       {
-        "title": "DeepL Office Translator",
+        "title": "AI Office Translator",
         "width": 1000,
         "height": 700
       }
@@ -45,7 +45,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.deepl-office-translator.app",
+      "identifier": "AI-Office-Translator",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
