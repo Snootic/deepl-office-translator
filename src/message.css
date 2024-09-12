@@ -1,0 +1,54 @@
+.msg {
+    position: fixed;
+    visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 250px;
+    background-color: #0f0f0f98;
+    color: rgb(255, 255, 255);
+    text-align: center;
+    border-radius: 20px;
+    padding: 20px;
+    z-index: 1;
+    bottom: 5%;
+    font-size: 1rem;
+    align-self: center;
+  }
+    
+  .showMessage {
+    visibility: visible;
+    animation: fadein 1s
+  }
+  
+  .hideMessage {
+    visibility: hidden;
+    animation: fadeout 1s;
+  }
+
+  @keyframes fadein {
+    from {bottom: 0; opacity: 0;}
+    to {bottom: 30px; opacity: 1;}
+  }
+  
+  @keyframes fadeout {
+    from {bottom: 30px; opacity: 1;}
+    to {bottom: 0; opacity: 0;}
+  }
+
+
+@media (prefers-color-scheme: dark) {
+.msg {
+    color: #ffffff;
+    background-color: #0f0f0f98;
+}
+}
+
+@media (prefers-color-scheme: white) {
+.msg {
+    color: #0f0f0f98;
+    background-color: #ffffff;
+}
+}
+
+  
