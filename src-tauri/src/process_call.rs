@@ -70,10 +70,13 @@ fn convert_to_json(py_obj: &PyAny) -> PyResult<Value> {
             json_map.insert(key_str, json_value);
         }
         Ok(Value::Object(json_map))
+    } else if let Ok(py_str) = py_obj.extract::<String>() {
+        Ok(Value::String(py_str))
     } else {
-        Ok(json!(format!("{:?}", py_obj)))
+        Ok(Value::String(format!("{:?}", py_obj)))
     }
 }
+
 
 pub fn handle_python_call(file_path: &str, module: &str, object: &str, object_args: Option<Vec<&str>>, method: &str, args: Option<Vec<&str>>, kwargs: Option<Vec<(&str, &str)>>) -> Result<String, String> {
     match call_python(file_path, module, object, object_args, method, args, kwargs) {
