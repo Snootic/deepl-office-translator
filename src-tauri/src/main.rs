@@ -2,11 +2,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod get_api_keys;
-mod translator_requests;
 mod process_call;
+mod documents;
 
+use documents::documents_handler;
 use get_api_keys::{get_deepl_keys, get_gpt_keys, Item};
-use translator_requests::*;
 
 #[tauri::command]
 fn get_chatgpt_keys() -> Result<Vec<Item>, String> {
@@ -29,7 +29,7 @@ fn get_deep_keys() -> Result<Vec<Item>, String> {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_deep_keys,get_chatgpt_keys,check_usage,get_source_languages,get_target_languages,translate_doc_alt,get_glossaries,glossary_from_excel,delete_glossary])
+        .invoke_handler(tauri::generate_handler![documents_handler::load_document])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
