@@ -1,4 +1,5 @@
 import json
+import os
 import deepl
 import pandas as pd
 from docx import Document
@@ -10,13 +11,33 @@ import sys
 class Translate:
     # All returns must be json parsable
     
-    def __init__(self, model: str, api_key: str, **kwargs) -> None:
+    def __init__(self) -> None:
+        self.model:str
+        self.API_KEY: str
+    
+    def main(self,api_key: str, model: str, **kwargs):
+        self.API_KEY = api_key
         self.model = model
         if model.__contains__("gpt"):
             self.client = OpenAI(api_key=api_key, **kwargs)
         else:
             self.translator = deepl.Translator(api_key)
+    
+    def translate_document(self, file: str, output_path: str, target_lang: str, source_lang: str = None, **kwargs):
+        if isinstance(file, str):
+            ext = os.path.splitext(file)[1].lower()
+        else:
+            ext = os.path.splitext(file.name)[1].lower()
 
+        if ext == ".docx":
+            return self.translate_word_preserve_format(file, output_path, target_lang, source_lang, **kwargs)
+        elif ext == ".xlsx":
+            return self.translate_excel(file, output_path, target_lang, source_lang, **kwargs)
+        elif ext == ".pptx":
+            return self.translate_pptx(file, output_path, target_lang, source_lang, **kwargs)
+        else:
+            raise ValueError("Tipo de arquivo não suportado. Por favor, insira um arquivo .docx, .xlsx ou .pptx.")
+    
     def translate_pptx(self, presentation_path: str, output_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo | str = None, **kwargs):
         prs = Presentation(presentation_path)
 
@@ -194,10 +215,12 @@ class Translate:
         try:
             translate_paragraph(doc)
             translate_tables()
-        except:
+        except Exception as e:
             doc.save(output_path)
+            return {"error": f"error but saved: {e}"}
         
         doc.save(output_path)
+        return {"sucess": "sucess"}
 
     def translate_excel(self, spreadsheet_path: str, output_path: str, source_column:str, target_column:str, target_lang: str,  source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         df = pd.read_excel(spreadsheet_path)
@@ -246,56 +269,5 @@ class Translate:
             return self.gpt_translate_text(*args,**kwargs)
         return self.deepl_translate_text(*args,**kwargs)
     
-if __name__ == "__main__":
-    help = """
-        you must pass an argument to this program!
-        
-        example: program.exe key=api_key method=check_usage args=arg1,arg2
-        
-        available commands:
-        "help": show this
-        "key": the account api key
-        "method": the function you want to access
-        "args": the function arguments you want to pass if available
-    """
-    available_args = ["help","model","key","method","args"]
-    args = {}
-    call_arguments = []
-    for arg in sys.argv:
-        try:
-            arg = arg.split("=",1)
-            if arg[0] != sys.argv[0] and arg[0] not in available_args:
-                raise ValueError
-            if arg[0] == "args":
-                call_arguments = arg[1].split(",")
-                continue
-            args[arg[0]] = arg[1]
-        except ValueError:
-            print("Invalid argument")
-        except IndexError:
-            if arg[0] == sys.argv[0]:
-                pass
-            else:
-                print("invalid argument or missing parameter")
-    
-    if len(sys.argv) < 2 or "help" in sys.argv:
-        print(help)
-    
-    else:
-        try:
-            account = Translate(args["model"],args["key"])
-            result = getattr(account,args["method"])(*call_arguments)
-            # print(result)
-            if type(result) != str:
-                result = json.dumps(obj=result,skipkeys=True, default=lambda o: '<not serializable>',indent=2)
 
-            print(result)
-            
-        except deepl.DeepLException as d:
-            print(f"Invalid API key: {d}")
-        except KeyError as k:
-            print(f"missing parameter {k}")
-        except TypeError as t:
-            print(t)
-        except Exception as e:
-            print("Ocorreu um erro: ", e)
+translate = Translate()

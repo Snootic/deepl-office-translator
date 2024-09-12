@@ -5,9 +5,12 @@ import sys
 #todo add method overload
 
 class Glossario():
-    def __init__(self, api_key:str) -> None:
-        self.API_KEY = api_key
+    def __init__(self) -> None:
+        self.API_KEY: str
         self.glossario: deepl.GlossaryInfo | str
+
+    def main(self,api_key: str):
+        self.API_KEY = api_key
 
     def create_from_excel(self, spreadsheet_path, file_name, file_path, source_language, target_language, excluded_keys:list = None) -> None:
         df = pd.read_excel(spreadsheet_path)
@@ -105,53 +108,5 @@ class Glossario():
         )
         return self.glossary.__dict__
 
-if __name__ == "__main__":
-    help = """
-        you must pass an argument to this program!
-        
-        example: program.exe key=api_key method=check_usage args=arg1,arg2
-        
-        available commands:
-        "help": show this
-        "key": the account api key
-        "method": the function you want to access
-        "args": the function arguments you want to pass if available
-    """
-    available_args = ["help","key","method","args"]
-    args = {}
-    call_arguments = []
-    for arg in sys.argv:
-        try:
-            arg = arg.split("=",1)
-            if arg[0] != sys.argv[0] and arg[0] not in available_args:
-                raise ValueError
-            if arg[0] == "args":
-                call_arguments = arg[1].split(",")
-                continue
-            args[arg[0]] = arg[1]
-        except ValueError:
-            print("Invalid argument")
-        except IndexError:
-            if arg[0] == sys.argv[0]:
-                pass
-            else:
-                print("invalid argument or missing parameter")
-            
-    if len(sys.argv) < 2 or "help" in sys.argv:
-        print(help)
-    
-    else:
-        try:
-            account = Glossario(args["key"])
-            result = getattr(account,args["method"])(*call_arguments)
-            if type(result) != str:
-                result = json.dumps(obj=result,skipkeys=True, default=lambda o: '<not serializable>',indent=2)
 
-            print(result)
-            
-        except deepl.DeepLException as d:
-            print(f"Invalid API key: {d}")
-        except KeyError as k:
-            print(f"missing parameter {k}")
-        except TypeError as t:
-            print(t)
+glossario = Glossario()

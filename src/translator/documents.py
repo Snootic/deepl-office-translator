@@ -61,7 +61,7 @@ class File:
 
         properties["tokens_count"] = len(tokens)
 
-        return properties 
+        return properties
 
     def load_word(self, file: str | IO[bytes ]= None):
         try:
@@ -90,7 +90,7 @@ class File:
         properties["tokens"] = tokens
 
         properties["tokens_count"] = len(tokens)
-      
+        
         return properties
     
     def tokenize(self,text):
@@ -99,54 +99,5 @@ class File:
 
         return tokens
     
-if __name__ == "__main__":
-    help = """
-        you must pass an argument to this program!
-        
-        example: program.exe key=api_key method=check_usage args=arg1,arg2
-        
-        available commands:
-        "help": show this
-        "key": the account api key
-        "method": the function you want to access
-        "args": the function arguments you want to pass if available
-    """
-    available_args = ["help","key","method","args"]
-    args = {}
-    call_arguments = []
-    for arg in sys.argv:
-        try:
-            arg = arg.split("=",1)
-            if arg[0] != sys.argv[0] and arg[0] not in available_args:
-                raise ValueError
-            if arg[0] == "args":
-                call_arguments = arg[1].split(",")
-                continue
-            args[arg[0]] = arg[1]
-        except ValueError:
-            print("Invalid argument")
-        except IndexError:
-            if arg[0] == sys.argv[0]:
-                pass
-            else:
-                print("invalid argument or missing parameter")
-            
-    if len(sys.argv) < 2 or "help" in sys.argv:
-        print(help)
-    
-    else:
-        try:
-            account = File()
-            result = getattr(account,args["method"])(*call_arguments)
-            # print(result)
-            if type(result) != str:
-                result = json.dumps(obj=result,skipkeys=True, default=lambda o: '<not serializable>',indent=2)
 
-            print(result)
-
-        except KeyError as k:
-            print(f"missing parameter {k}")
-        except TypeError as t:
-            print(t)
-        except Exception as e:
-            print("Ocorreu um erro: ", e)
+file = File()
