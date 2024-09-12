@@ -17,7 +17,7 @@ function fill_model_select(element, list){
 
 async function get_models() {
     try {
-        const result = await invoke('get_gpt_models', { key: apiKey });
+        const result = await invoke('get_gpt_models', { apiKey: apiKey });
         const parsedResult = JSON.parse(result);
 
         if (parsedResult.success) {
@@ -33,8 +33,6 @@ async function get_models() {
     }
 }
 
-get_models()
-
 function deepl_params(hide){
     const usage = document.querySelector(".quota-info")
     const glossary_div = document.querySelector("#glossary-div")
@@ -44,8 +42,6 @@ function deepl_params(hide){
     } else{
         usage.classList.add("show");
         glossary_div.classList.add("show");
-        console.log(glossary_div.classList)
-        console.log(usage.classList)
     }
 }
 
@@ -56,3 +52,5 @@ model_select.addEventListener("change", function(){
         deepl_params(false)
     }
 })
+
+get_models()

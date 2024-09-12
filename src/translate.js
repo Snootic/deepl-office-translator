@@ -15,6 +15,7 @@ const confirmarSrcLang = document.getElementById("source_language_confirm");
 const confirmarArquivoOriginal = document.getElementById("original_file_confirm");
 const confirmarArquivoDestino = document.getElementById("target_file_confirm");
 const confirmarTraducaoBotao = document.getElementById("confirm-translation");
+const confirmarModelo = document.getElementById("model_confirm");
 const cancelarTraducaoBotao = document.getElementById("cancel-translation");
 
 function updateConfirmFields(formData) {
@@ -25,6 +26,7 @@ function updateConfirmFields(formData) {
     const originalFile = formData.get("original-file-input");
     confirmarArquivoOriginal.value = originalFile ? originalFile.name : "Nenhum arquivo selecionado";
     confirmarArquivoDestino.value = formData.get("target-file-input") || "Nenhum caminho selecionado";
+    confirmarModelo.value = document.getElementById("model-selector").value
 }
 
 async function handleTranslation(formData) {

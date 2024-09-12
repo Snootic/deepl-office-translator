@@ -17,19 +17,21 @@ pub fn call_python(file_path: &str, module: &str, object: &str, object_args: Opt
 
         let py_module = PyModule::from_code(py, &code, &file_name, module)?;
 
+        let py_object = py_module.getattr(object)?;
+
         if let Some(object_args) = object_args{
             let method_args = PyTuple::new(py, object_args);
-            py_module.getattr(object)?.call_method1("__main", method_args)?;
+            py_object.call_method1("main", method_args)?;
         }
         
 
         let raw_result = match (args, kwargs) {
             (None, None) => {
-                py_module.getattr(object)?.call_method0(method)?
+                py_object.call_method0(method)?
             }
             (Some(arg_list), None) => {
                 let method_args = PyTuple::new(py, arg_list);
-                py_module.getattr(object)?.call_method1(method, method_args)?
+                py_object.call_method1(method, method_args)?
             }
             (Some(arg_list), Some(kwarg_list)) => {
                 let method_args = PyTuple::new(py, arg_list);
@@ -37,14 +39,14 @@ pub fn call_python(file_path: &str, module: &str, object: &str, object_args: Opt
                 for (key, value) in kwarg_list {
                     method_kwargs.set_item(key, value)?;
                 }
-                py_module.getattr(object)?.call_method(method, method_args, Some(&method_kwargs))?
+                py_object.call_method(method, method_args, Some(&method_kwargs))?
             }
             (None, Some(kwarg_list)) => {
                 let method_kwargs = PyDict::new(py);
                 for (key, value) in kwarg_list {
                     method_kwargs.set_item(key, value)?;
                 }
-                py_module.getattr(object)?.call_method(method, (), Some(&method_kwargs))?
+                py_object.call_method(method, (), Some(&method_kwargs))?
             }
         };
 

@@ -38,7 +38,7 @@ pub mod documents_handler {
         let args: Vec<&str> = vec![file_absolute_path.as_str()];
 
         handle_python_call(
-            "/home/snootic/Documents/deepl-office-translator/src/translator/documents.py", 
+            "../src/translator/documents.py", 
             "documents", 
             "file", 
             None, 

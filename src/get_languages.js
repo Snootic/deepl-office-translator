@@ -15,7 +15,7 @@ function fill_select(element, list) {
 
 async function get_source_languages() {
     try {
-        const result = await invoke('get_source_languages', { key: apiKey });
+        const result = await invoke('get_source_languages', { apiKey: apiKey });
         const parsedResult = JSON.parse(result);
 
         if (parsedResult.success) {
@@ -33,7 +33,7 @@ async function get_source_languages() {
 
 async function get_target_languages() {
     try {
-        const result = await invoke('get_target_languages', { key: apiKey });
+        const result = await invoke('get_target_languages', { apiKey: apiKey });
         const parsedResult = JSON.parse(result);
 
         if (parsedResult.success) {

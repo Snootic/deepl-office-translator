@@ -16,7 +16,7 @@ function fill_glossary_select(element, list){
 
 async function checkUsage() {
     try {
-        const result = await invoke('check_usage', {key: apiKey});
+        const result = await invoke('check_usage', {apiKey: apiKey});
         const parsedResult = JSON.parse(result);
 
         if (parsedResult.success) {
@@ -40,7 +40,7 @@ async function checkUsage() {
 
 async function get_glossaries() {
     try {
-        const result = await invoke('get_glossaries', { key: apiKey });
+        const result = await invoke('get_glossaries', { apiKey: apiKey });
         const parsedResult = JSON.parse(result);
 
 

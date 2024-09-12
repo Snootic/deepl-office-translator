@@ -4,8 +4,14 @@
 mod get_api_keys;
 mod process_call;
 mod documents;
+mod glossary;
+mod translate;
+mod utils;
 
 use documents::documents_handler;
+use glossary::glossary_handler;
+use utils::utils_handler;
+use translate::translate_handler;
 use get_api_keys::{get_deepl_keys, get_gpt_keys, Item};
 
 #[tauri::command]
@@ -29,7 +35,17 @@ fn get_deep_keys() -> Result<Vec<Item>, String> {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![documents_handler::load_document])
+        .invoke_handler(tauri::generate_handler![
+            documents_handler::load_document,
+            glossary_handler::get_glossaries,
+            utils_handler::get_gpt_models,
+            utils_handler::get_source_languages,
+            utils_handler::get_target_languages,
+            utils_handler::check_usage,
+            translate_handler::translate_document,
+            get_chatgpt_keys,
+            get_deep_keys
+            ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
