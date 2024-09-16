@@ -1,3 +1,4 @@
+from io import BytesIO
 from docx import Document
 from pptx import Presentation
 import pandas as pd
@@ -50,11 +51,65 @@ class File:
         for slide in prs.slides:
             for shape in slide.shapes:
                 if shape.has_text_frame:
+                    if isinstance(shape.text, (int,float)) or not shape.text.strip():
+                                        continue
                     final_text += shape.text
                     pretokens = self.tokenize(shape.text)
                     for token in pretokens:
                         tokens.append(token)
-                    
+
+                if shape.has_table:
+                        table = shape.table 
+                        table_data = []
+                        for row in table.rows:
+                            for cell in row.cells:
+                                if isinstance(cell, (int,float)) or not cell.strip():
+                                        continue
+                                final_text += cell.text.rstrip()
+                                pretokens = self.tokenize(cell.text.rstrip())
+                                for token in pretokens:
+                                    tokens.append(token)
+                if shape.has_chart:
+                        try:
+                            blob_stream = BytesIO(shape.chart._workbook.xlsx_part.blob)
+                            sheets = pd.ExcelFile(blob_stream).sheet_names
+                            df = pd.read_excel(blob_stream)
+                            columns = df.columns.tolist()
+                            
+                            for index, column in enumerate(columns):
+                                if isinstance(column, (int,float)) or not column.strip():
+                                        continue
+                                final_text += column
+                                
+                                pretokens = self.tokenize(column)
+                                for token in pretokens:
+                                    tokens.append(token)
+                                
+                            row_data = df.values.tolist()
+                            for row in row_data:
+                                for index, data in enumerate(row):
+                                    if isinstance(data, (int,float)) or not data.strip():
+                                        continue
+                                    
+                                    final_text += data
+                                
+                                    pretokens = self.tokenize(column)
+                                    for token in pretokens:
+                                        tokens.append(token)
+                            
+                            new_df = pd.DataFrame(data=row_data,columns=columns)
+                            
+                            blob = BytesIO()
+                            new_df.to_excel(blob,index=False, sheet_name=sheets[0], engine='xlsxwriter')
+                            blob.seek(0)
+                            
+                            blob_data = blob.getvalue()
+                            
+                            shape.chart._workbook.xlsx_part.blob = blob_data
+                            
+                        except Exception as e:
+                            continue
+                                
         properties["word_count"] = len(final_text.split(" "))
 
         properties["tokens"] = tokens
@@ -80,12 +135,19 @@ class File:
         paragraphs_text = ""
         tokens = []
         for paragraph in file.paragraphs:
-            paragraphs_text += paragraph.text
+            text = paragraph.text.rstrip()
+            text = text.lstrip()
+            paragraphs_text += " "+text
             pretokens = self.tokenize(paragraph.text)
             for token in pretokens:
                 tokens.append(token)
 
-        properties["word_count"] = len(paragraphs_text.split(" "))
+        words = paragraphs_text.split(" ")
+
+        while "" in words:
+            words.remove("")
+
+        properties["word_count"] = len(words)
 
         properties["tokens"] = tokens
 
