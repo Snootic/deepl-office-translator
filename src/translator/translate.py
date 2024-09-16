@@ -250,10 +250,7 @@ class Translate:
             messages=[
                 {
                     "role": "system", 
-                    "content": f"""You are the best poliglot translator in the world, you translate like no one. 
-                        You adapt all language expressions from all diferent cultures and countries, and make all text sound like natural to native speakers. 
-                        You preserve the format of the text, leaving it the way it was written, transmitting the feeling and meaning of the original text to the translated one.
-                        Translate the text below to {target_language} from {source_language}. Return only the translated text"""
+                    "content": f"You are a translator. Translate from {source_language} to {target_language}. Keep the format, uppercase, punctuation and adapt cultural expressions."
                 },
                 {
                     "role": "user",
