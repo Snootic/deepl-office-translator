@@ -42,8 +42,25 @@ class Translate:
         prs = Presentation(presentation_path)
 
         saving_iterations = 0
-        # print(len(prs.slides))
         
+        def runs_are_equal(run1, run2):
+            if (run1.font.bold != run2.font.bold):
+                return False
+            if (run1.font.italic != run2.font.italic):
+                return False
+            if (run1.font.underline != run2.font.underline):
+                return False
+            if run1.font.size != run2.font.size:
+                return False
+            if (hasattr(run1.font.color, 'rgb') and hasattr(run2.font.color, 'rgb')):
+                if run1.font.color.rgb != run2.font.color.rgb:
+                    return False
+            if 'came_from_pdf' in kwargs:
+                if kwargs['came_from_pdf'] == True:
+                    if run1.font.name != run2.font.name:
+                        return False
+            return True
+
         word_bank = {}
         try:
             for slide in prs.slides:
@@ -51,27 +68,52 @@ class Translate:
                     
                     if shape.has_text_frame:
                         for paragraph in shape.text_frame.paragraphs:
+                            
+                            runs = []
+                            previous_run = None
                             for run in paragraph.runs:
-                                original_text = run.text.rstrip()
-                                
-                                if not original_text.strip() or original_text.isdigit():
-                                    continue
-                                
-                                if word_bank.get(original_text):
-                                    run.text = word_bank[original_text]
-                                    continue
-                                        
-                                translated_text = self.translate_text(original_text, target_lang, source_lang, **kwargs)
-                                
-                                # translated_text = "isso é um parágrafo"
-                                
-                                word_bank[original_text] = translated_text
+
+                                if previous_run is not None and runs_are_equal(previous_run, run):
+                                    if previous_run in runs:
+                                        id = runs.index(previous_run)
+                                        runs.remove(previous_run)
+                                        previous_run.text += run.text
+                                        runs.insert(id, previous_run)
+                                    else:
+                                        previous_run.text += run.text
+                                        runs.append(previous_run)
+                                else:
+                                    previous_run = run
+                                    runs.append(previous_run)
+
+                            paragraph.clear()
+
+                            text_to_translate = ""
+                            for run in runs:
+                                text_to_translate += f"{run.text}"+"{end-run}"
+
+                            translated_text = self.translate_text(text_to_translate, target_lang, source_lang, **kwargs)
+                            
+                            runs_text = translated_text.split("{end-run}")
+
+                            for id, run in enumerate(runs):
+                                word_bank[run.text] = runs_text[id]
                                     
-                                run.text = translated_text
+                                run.text = runs_text[id]
+
+                                new_run = paragraph.add_run()
+
+                                new_run.font.bold = run.font.bold
+                                new_run.font.italic = run.font.italic
+                                new_run.font.underline = run.font.underline
+                                new_run.font.size = run.font.size
+                                if hasattr(run.font.color, 'rgb'):
+                                    new_run.font.color.rgb = run.font.color.rgb
+                                new_run.font.name = run.font.name
+                                new_run.text = run.text
                                     
                     if shape.has_table:
-                        table = shape.table 
-                        table_data = []
+                        table = shape.table
                         for row in table.rows:
                             for cell in row.cells:
                                 original_text = cell.text.rstrip()
@@ -184,27 +226,72 @@ class Translate:
     def translate_word_preserve_format(self,doc_path: str, output_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo | str = None, **kwargs):
         doc = Document(doc_path)
 
+        word_bank = {}
+
+        def runs_are_equal(run1, run2):
+            if run1.style != run2.style:
+                return False
+            if run1.bold != run2.bold:
+                return False
+            if run1.italic != run2.italic:
+                return False
+            if run1.underline != run2.underline:
+                return False
+            if run1.font.size != run2.font.size:
+                return False
+            if (hasattr(run1.font.color, 'rgb') and hasattr(run2.font.color, 'rgb')):
+                if run1.font.color.rgb != run2.font.color.rgb:
+                    return False
+            if 'came_from_pdf' in kwargs:
+                if kwargs['came_from_pdf'] == True:
+                    if run1.font.name != run2.font.name:
+                        return False
+            return True
+        
         def translate_paragraph(element):
-            saving_iterations = 0
             for paragraph in element.paragraphs:
                 if paragraph.text and paragraph.text.strip() !="":
-                    try:
-                        original_run = paragraph.runs[0]
-                    except:
-                        pass
-
-                    translated_text = self.translate_text(paragraph.text, target_lang, source_lang, glossary=glossary, **kwargs)
-                                        
-                    paragraph.text = translated_text
-                    
                     for run in paragraph.runs:
-                        run.style = original_run.style
-                        run.bold = original_run.bold
-                        run.italic = original_run.italic
-                        run.underline = original_run.underline
-                        run.font.size = original_run.font.size
-                        run.font.color.rgb = original_run.font.color.rgb
-                        run.font.name = original_run.font.name
+                        runs = []
+                        previous_run = None
+
+                        if previous_run is not None and runs_are_equal(previous_run, run):
+                            if previous_run in runs:
+                                id = runs.index(previous_run)
+                                runs.remove(previous_run)
+                                previous_run.text += run.text
+                                runs.insert(id, previous_run)
+                            else:
+                                previous_run.text += run.text
+                                runs.append(previous_run)
+                        else:
+                            previous_run = run
+                            runs.append(previous_run)
+
+                    paragraph.clear()
+
+                    text_to_translate = ""
+                    for run in runs:
+                        text_to_translate += f"{run.text}"+"{end-run}"
+
+                    translated_text = self.translate_text(text_to_translate, target_lang, source_lang, **kwargs)
+                    
+                    runs_text = translated_text.split("{end-run}")
+
+                    for id, run in enumerate(runs):
+                        word_bank[run.text] = runs_text[id]
+                            
+                        run.text = runs_text[id]
+
+                        new_run = paragraph.add_run()
+
+                        new_run.style = run.style
+                        new_run.bold = run.bold
+                        new_run.italic = run.italic
+                        new_run.underline = run.underline
+                        new_run.font.size = run.font.size
+                        new_run.font.color.rgb = run.font.color.rgb
+                        new_run.font.name = run.font.name
 
         def translate_tables():
             for table in doc.tables:
@@ -238,23 +325,22 @@ class Translate:
         except:
             return text
 
-    def gpt_translate_text(self, text: str, target_language:str, source_language:str, context: str | None = None):
+    def gpt_translate_text(self, text: str, target_language:str, source_language:str = None, context: str | None = None):
+        prompt = f"Translate to {target_language}. Keep the formatting, capitalization, punctuation, use the fluent vocabulary of a native speaker." +" Don't translate {end-run}."
         
         if context:
-            input = context + "(text below): " + text
-        else:
-            input = text
+            prompt += " "+context
         completion = self.client.chat.completions.create(
             model=self.model,
             
             messages=[
                 {
                     "role": "system", 
-                    "content": f"You are a translator. Translate from {source_language} to {target_language}. Keep the format, uppercase, punctuation and adapt cultural expressions."
+                    "content": prompt
                 },
                 {
                     "role": "user",
-                    "content": input
+                    "content": text
                 }
             ]
         )
