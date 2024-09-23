@@ -5,6 +5,7 @@ import pandas as pd
 from typing import Union, IO
 import tiktoken
 import os
+import datetime
 import json
 import sys
 
@@ -44,7 +45,7 @@ class File:
         for key in properties_keys:
             properties[key] = prs.core_properties.__getattribute__(key)
 
-        properties["slide_count"] = len(prs.slides)
+        properties["slide count"] = len(prs.slides)
 
         tokens = []
         final_text = ""
@@ -110,13 +111,22 @@ class File:
                         except Exception as e:
                             continue
                                 
-        properties["word_count"] = len(final_text.split(" "))
+        properties["word count"] = len(final_text.split(" "))
 
         properties["tokens"] = tokens
+        
+        try:
+            properties["created"] = datetime.datetime.isoformat(properties["created"])
+            properties["last_printed"] = datetime.datetime.isoformat(properties["last_printed"])
+            properties["modified"] = datetime.datetime.isoformat(properties["modified"])
+        except:
+            pass
+        
+        properties["tokens count"] = len(tokens)
 
-        properties["tokens_count"] = len(tokens)
-
-        return properties
+        result = json.dumps(obj=properties,skipkeys=True, default=lambda o: '<not serializable>',indent=2,ensure_ascii=False)
+        
+        return result
 
     def load_word(self, file: str | IO[bytes ]= None):
         try:
@@ -150,10 +160,19 @@ class File:
         properties["word_count"] = len(words)
 
         properties["tokens"] = tokens
-
-        properties["tokens_count"] = len(tokens)
         
-        return properties
+        
+        try:
+            properties["created"] = datetime.datetime.isoformat(properties["created"])
+            properties["last_printed"] = datetime.datetime.isoformat(properties["last_printed"])
+            properties["modified"] = datetime.datetime.isoformat(properties["modified"])
+        except:
+            pass
+        properties["tokens_count"] = len(tokens)
+             
+        result = json.dumps(obj=properties,skipkeys=True, default=lambda o: '<not serializable>',indent=2,ensure_ascii=False)
+
+        return result
     
     def tokenize(self,text):
         enc = tiktoken.encoding_for_model("gpt-4o")
