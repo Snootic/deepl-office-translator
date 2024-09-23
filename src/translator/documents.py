@@ -182,8 +182,3 @@ class File:
     
 
 file = File()
-
-print(file.load_document("/home/snootic/Downloads/PHP_Respostas.docx"))
-# print(file.load_document("/home/snootic/Downloads/Cliyo_Proposta.pdf"))
-print(file.load_document("/home/snootic/Downloads/Hi-link Module Product Select List - 2024.xlsx"))
-print(file.load_document("/home/snootic/Downloads/Apresentação escova elétrica - Colgate Nest_270423.pptx"))
