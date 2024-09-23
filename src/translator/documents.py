@@ -8,7 +8,6 @@ import tiktoken
 import os
 import datetime
 import json
-import sys
 
 class File:
     def __init__(self) -> None:

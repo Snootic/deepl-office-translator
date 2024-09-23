@@ -1,6 +1,5 @@
 import pandas as pd
 import json, deepl
-import sys
 
 #todo add method overload
 

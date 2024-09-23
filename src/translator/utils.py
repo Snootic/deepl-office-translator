@@ -1,8 +1,5 @@
-import json
 import deepl
-import openai
 from openai import OpenAI
-import sys
 
 class DeeplAccount():
     def __init__(self) -> None:

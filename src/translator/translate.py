@@ -1,4 +1,3 @@
-import json
 import os
 import deepl
 import pandas as pd
@@ -6,7 +5,7 @@ from docx import Document
 from pptx import Presentation
 from openai import OpenAI
 from io import BytesIO
-import sys
+from pypdf import PdfReader, PdfWriter
 
 class Translate:
     # All returns must be json parsable
@@ -315,6 +314,18 @@ class Translate:
         df[target_column] = df[source_column].apply(lambda x: self.translate_text(x, source_lang=source_lang, target_lang=target_lang, glossary=glossary, **kwargs))
 
         df.to_excel(output_path, index=False)  
+    
+    def translate_pdf(self, pdf_path: str, output_path: str, target_lang: str, source_lang: str = None, to_word: bool = False, **kwargs):
+        reader = PdfReader(pdf_path)
+        writer = PdfWriter(reader)
+        
+        for page in writer.pages:
+            text = page.extract_text()
+            
+            # translated_text = self.translate_text(text, source_lang=source_lang, target_lang=target_lang, **kwargs)
+            
+            print(page.items)
+            print("alo amigos")
            
     def deepl_translate_text(self, text: str, source_lang: str = None, target_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         try:
@@ -354,3 +365,4 @@ class Translate:
     
 
 translate = Translate()
+print(translate)
