@@ -63,7 +63,7 @@ class File:
                         table_data = []
                         for row in table.rows:
                             for cell in row.cells:
-                                if isinstance(cell, (int,float)) or not cell.strip():
+                                if isinstance(cell, (int,float)) or not cell.text.strip():
                                         continue
                                 final_text += cell.text.rstrip()
                                 pretokens = self.tokenize(cell.text.rstrip())
@@ -163,3 +163,8 @@ class File:
     
 
 file = File()
+
+print(file.load_document("/home/snootic/Downloads/PHP_Respostas.docx"))
+# print(file.load_document("/home/snootic/Downloads/Cliyo_Proposta.pdf"))
+print(file.load_document("/home/snootic/Downloads/Hi-link Module Product Select List - 2024.xlsx"))
+print(file.load_document("/home/snootic/Downloads/Apresentação escova elétrica - Colgate Nest_270423.pptx"))
