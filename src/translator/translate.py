@@ -44,15 +44,36 @@ class Translate:
         
         def runs_are_equal(run1, run2):
             if (run1.font.bold != run2.font.bold):
-                return False
+                if run1.font.bold is None and run2.font.bold != True:
+                    pass
+                elif run2.font.bold is None and run1.font.bold != True:
+                    pass
+                else:
+                    return False
             if (run1.font.italic != run2.font.italic):
-                return False
+                if run1.font.italic is None and run2.font.italic != True:
+                    pass
+                elif run2.font.italic is None and run1.font.italic != True:
+                    pass
+                else:
+                    return False
             if (run1.font.underline != run2.font.underline):
-                return False
+                if run1.font.underline is None and run2.font.underline != True:
+                    pass
+                elif run2.font.underline is None and run1.font.underline != True:
+                    pass
+                else:
+                    return False
             if run1.font.size != run2.font.size:
-                return False
+                if run1.font.size is None and run2.font.size != True:
+                    pass
+                elif run2.font.size is None and run1.font.size != True:
+                    pass
+                else:
+                    return False
             if (hasattr(run1.font.color, 'rgb') and hasattr(run2.font.color, 'rgb')):
                 if run1.font.color.rgb != run2.font.color.rgb:
+                    print("color")
                     return False
             if 'came_from_pdf' in kwargs:
                 if kwargs['came_from_pdf'] == True:
@@ -71,7 +92,8 @@ class Translate:
                             runs = []
                             previous_run = None
                             for run in paragraph.runs:
-
+                                if run.text.strip() == "":
+                                    continue
                                 if previous_run is not None and runs_are_equal(previous_run, run):
                                     if previous_run in runs:
                                         id = runs.index(previous_run)
@@ -88,10 +110,22 @@ class Translate:
                             paragraph.clear()
 
                             text_to_translate = ""
-                            for run in runs:
-                                text_to_translate += f"{run.text}"+"{end-run}"
+                            if len(runs) > 1:
+                                for run in runs:
+                                    if run != runs[-1]:
+                                        text_to_translate += f"{run.text}"+"{end-run}"
+                                        continue
+                                    text_to_translate += f"{run.text}"
+                            else:
+                                text_to_translate += run.text
 
-                            translated_text = self.translate_text(text_to_translate, target_lang, source_lang, **kwargs)
+                            if text_to_translate.strip() == "" or text_to_translate.isdigit():
+                                continue
+
+                            if text_to_translate in word_bank:
+                                translated_text = text_to_translate
+                            else:
+                                translated_text = self.translate_text(text_to_translate, target_lang, source_lang, **kwargs)
                             
                             runs_text = translated_text.split("{end-run}")
 
@@ -229,15 +263,40 @@ class Translate:
 
         def runs_are_equal(run1, run2):
             if run1.style != run2.style:
-                return False
+                if run1.style is None and run2.style != True:
+                    pass
+                elif run2.style is None and run1.style != True:
+                    pass
+                else:
+                    return False
             if run1.bold != run2.bold:
-                return False
+                if run1.bold is None and run2.bold != True:
+                    pass
+                elif run2.bold is None and run1.bold != True:
+                    pass
+                else:
+                    return False
             if run1.italic != run2.italic:
-                return False
+                if run1.italic is None and run2.italic != True:
+                    pass
+                elif run2.italic is None and run1.italic != True:
+                    pass
+                else:
+                    return False
             if run1.underline != run2.underline:
-                return False
+                if run1.underline is None and run2.underline != True:
+                    pass
+                elif run2.underline is None and run1.underline != True:
+                    pass
+                else:
+                    return False
             if run1.font.size != run2.font.size:
-                return False
+                if run1.size is None and run2.size != True:
+                    pass
+                elif run2.size is None and run1.size != True:
+                    pass
+                else:
+                    return False
             if (hasattr(run1.font.color, 'rgb') and hasattr(run2.font.color, 'rgb')):
                 if run1.font.color.rgb != run2.font.color.rgb:
                     return False
@@ -250,6 +309,8 @@ class Translate:
         def translate_paragraph(element):
             for paragraph in element.paragraphs:
                 if paragraph.text and paragraph.text.strip() !="":
+                    if run.text.strip() == "":
+                        continue
                     for run in paragraph.runs:
                         runs = []
                         previous_run = None
@@ -270,10 +331,19 @@ class Translate:
                     paragraph.clear()
 
                     text_to_translate = ""
-                    for run in runs:
-                        text_to_translate += f"{run.text}"+"{end-run}"
+                    if len(runs) > 1:
+                        for run in runs:
+                            if run != runs[-1]:
+                                text_to_translate += f"{run.text}"+"{end-run}"
+                                continue
+                            text_to_translate += f"{run.text}"
+                    else:
+                        text_to_translate += run.text
 
-                    translated_text = self.translate_text(text_to_translate, target_lang, source_lang, **kwargs)
+                    if text_to_translate in word_bank:
+                        translated_text = text_to_translate
+                    else:
+                        translated_text = self.translate_text(text_to_translate, target_lang, source_lang, **kwargs)
                     
                     runs_text = translated_text.split("{end-run}")
 
@@ -337,7 +407,7 @@ class Translate:
             return text
 
     def gpt_translate_text(self, text: str, target_language:str, source_language:str = None, context: str | None = None):
-        prompt = f"Translate to {target_language}. Keep the formatting, capitalization, punctuation, use the fluent vocabulary of a native speaker." +" Don't translate {end-run}."
+        prompt = f"Translate to {target_language}. Keep the formatting, capitalization, punctuation, use the fluent vocabulary of a native speaker." +" Maintain {end-run}."
         
         if context:
             prompt += " "+context
@@ -365,4 +435,3 @@ class Translate:
     
 
 translate = Translate()
-print(translate)
