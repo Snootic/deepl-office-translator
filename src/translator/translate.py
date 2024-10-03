@@ -37,10 +37,8 @@ class Translate:
         else:
             raise ValueError("Tipo de arquivo não suportado. Por favor, insira um arquivo .docx, .xlsx ou .pptx.")
     
-    def translate_pptx(self, presentation_path: str, output_path: str, target_lang: str, source_lang: str = None, glossary: deepl.GlossaryInfo | str = None, **kwargs):
+    def translate_pptx(self, presentation_path: str, output_path: str, target_lang: str, source_lang: str = None, pages: int | list = None, glossary: deepl.GlossaryInfo | str = None, **kwargs):
         prs = Presentation(presentation_path)
-
-        saving_iterations = 0
         
         def runs_are_equal(run1, run2):
             if (run1.font.bold != run2.font.bold):
@@ -83,12 +81,18 @@ class Translate:
 
         word_bank = {}
         try:
-            for slide in prs.slides:
+            if not pages:
+                pages = [id for id, slide in enumerate(prs.slides)]
+
+            for id, slide in enumerate(prs.slides):
+                if isinstance(pages, int) and id != pages:
+                    continue
+                elif isinstance(pages, list) and id not in pages:
+                    continue
                 for shape in slide.shapes:
-                    
                     if shape.has_text_frame:
                         for paragraph in shape.text_frame.paragraphs:
-                            
+                            print(paragraph.text)
                             runs = []
                             previous_run = None
                             for run in paragraph.runs:
@@ -110,17 +114,21 @@ class Translate:
                             paragraph.clear()
 
                             text_to_translate = ""
-                            if len(runs) > 1:
+                            if len(runs) == 0:
+                                continue
+                            elif len(runs) > 1:
                                 for run in runs:
                                     if run != runs[-1]:
                                         text_to_translate += f"{run.text}"+"{end-run}"
                                         continue
                                     text_to_translate += f"{run.text}"
                             else:
-                                text_to_translate += run.text
+                                text_to_translate += runs[0].text
 
                             if text_to_translate.strip() == "" or text_to_translate.isdigit():
                                 continue
+
+                            # print(text_to_translate)
 
                             if text_to_translate in word_bank:
                                 translated_text = text_to_translate
@@ -130,20 +138,29 @@ class Translate:
                             runs_text = translated_text.split("{end-run}")
 
                             for id, run in enumerate(runs):
+                                try:
+                                    print(runs_text[id])
+                                except IndexError:
+                                    continue
+
                                 word_bank[run.text] = runs_text[id]
-                                    
-                                run.text = runs_text[id]
+
+                                # print(translated_text)
+
+                                run_copy = run
+
+                                run_copy.text = runs_text[id]
 
                                 new_run = paragraph.add_run()
 
-                                new_run.font.bold = run.font.bold
-                                new_run.font.italic = run.font.italic
-                                new_run.font.underline = run.font.underline
-                                new_run.font.size = run.font.size
+                                new_run.font.bold = run_copy.font.bold
+                                new_run.font.italic = run_copy.font.italic
+                                new_run.font.underline = run_copy.font.underline
+                                new_run.font.size = run_copy.font.size
                                 if hasattr(run.font.color, 'rgb'):
-                                    new_run.font.color.rgb = run.font.color.rgb
-                                new_run.font.name = run.font.name
-                                new_run.text = run.text
+                                    new_run.font.color.rgb = run_copy.font.color.rgb
+                                new_run.font.name = run_copy.font.name
+                                new_run.text = run_copy.text
                                     
                     if shape.has_table:
                         table = shape.table
@@ -218,7 +235,6 @@ class Translate:
                         except Exception as e:
                             continue
                                             
-                saving_iterations+=1
         except:
             prs.save(output_path)
 
@@ -331,14 +347,16 @@ class Translate:
                     paragraph.clear()
 
                     text_to_translate = ""
-                    if len(runs) > 1:
+                    if len(runs) == 0:
+                        continue
+                    elif len(runs) > 1:
                         for run in runs:
                             if run != runs[-1]:
                                 text_to_translate += f"{run.text}"+"{end-run}"
                                 continue
                             text_to_translate += f"{run.text}"
                     else:
-                        text_to_translate += run.text
+                        text_to_translate += runs[0].text
 
                     if text_to_translate in word_bank:
                         translated_text = text_to_translate
@@ -348,6 +366,10 @@ class Translate:
                     runs_text = translated_text.split("{end-run}")
 
                     for id, run in enumerate(runs):
+                        try:
+                            print(runs_text[id])
+                        except IndexError:
+                            continue
                         word_bank[run.text] = runs_text[id]
                             
                         run.text = runs_text[id]
@@ -407,7 +429,7 @@ class Translate:
             return text
 
     def gpt_translate_text(self, text: str, target_language:str, source_language:str = None, context: str | None = None):
-        prompt = f"Translate to {target_language}. Keep the formatting, capitalization, punctuation, use the fluent vocabulary of a native speaker." +" Maintain {end-run}."
+        prompt = f"Translate to {target_language}. Keep the formatting, capitalization, punctuation, use the fluent vocabulary of a native speaker." +" Don't translate {end-run}, don't remove it."
         
         if context:
             prompt += " "+context
