@@ -121,7 +121,7 @@ class File:
                                 
         properties["word count"] = len(final_text.split(" "))
 
-        properties["tokens"] = tokens
+        # properties["tokens"] = tokens
         
         try:
             properties["created"] = datetime.datetime.isoformat(properties["created"])
@@ -134,7 +134,9 @@ class File:
 
         result = json.dumps(obj=properties,skipkeys=True, default=lambda o: '<not serializable>',indent=2,ensure_ascii=False)
         
-        return result
+        # print(json.loads(result))
+
+        return json.loads(result)
 
     def load_word(self, file: str | IO[bytes ]= None):
         try:
@@ -167,7 +169,7 @@ class File:
 
         properties["word_count"] = len(words)
 
-        properties["tokens"] = tokens
+        # properties["tokens"] = tokens
         
         
         try:
@@ -180,7 +182,7 @@ class File:
         
         result = json.dumps(obj=properties,skipkeys=True, default=lambda o: '<not serializable>',indent=2,ensure_ascii=False)
         
-        return result
+        return json.loads(result)
     
     def load_pdf(self, file: str | IO[bytes ]= None, pdf_password: str = None):
         reader = PdfReader(file)
@@ -209,7 +211,7 @@ class File:
         properties["number of pages"] = number_of_pages
         properties["word count"] = len(words)
         
-        properties["tokens"] = tokens
+        # properties["tokens"] = tokens
         properties["token count"] = len(tokens)
                 
         return properties
