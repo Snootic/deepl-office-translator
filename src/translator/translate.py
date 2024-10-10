@@ -6,6 +6,7 @@ from pptx import Presentation
 from openai import OpenAI
 from io import BytesIO
 from pypdf import PdfReader, PdfWriter
+from sys import _getframe
 
 class Translate:
     # All returns must be json parsable
@@ -21,6 +22,88 @@ class Translate:
             self.client = OpenAI(api_key=api_key, **kwargs)
         else:
             self.translator = deepl.Translator(api_key)
+   
+    def _attribute_are_equals(self, attr1, attr2) -> bool:
+        if attr1 == attr2:
+            True
+        if attr1 is None and attr2 == False:
+            True
+        if attr2 is None and attr1 == False:
+            True
+        return False
+    
+    def _runs_are_equals(self, run1, run2, **kwargs) -> bool:
+        caller = _getframe(1).f_code.co_name
+        
+        if caller == "translate_word_preserve_format":
+            font1 = run1
+            font2 = run2
+        else:
+            font1 = run1.font
+            font2 = run2.font
+        
+        if not self._attribute_are_equals(run1.font.size, run2.font.size):
+            return False
+        
+        elif (hasattr(run1.font.color, 'rgb') and hasattr(run2.font.color, 'rgb')):
+            if run1.font.color.rgb != run2.font.color.rgb:
+                    return False
+                
+        elif 'came_from_pdf' in kwargs:
+            if kwargs['came_from_pdf'] == False:
+                if run1.font.name != run2.font.name:
+                    return False
+            
+        elif not self._attribute_are_equals(font1.bold, font2.bold):
+            return False
+        
+        elif not self._attribute_are_equals(font1.underline, font2.underline):
+            return False
+        
+        elif not self._attribute_are_equals(font1.italic, font2.italic):
+            return False
+        
+        return True
+    
+    def _process_runs(self, paragraph) -> None:
+        runs = []
+        previous_run = None
+        for run in paragraph.runs:
+            if run.text.strip() == "":
+                continue
+            if previous_run is not None and self._runs_are_equals(previous_run, run):
+                if previous_run in runs:
+                    id = runs.index(previous_run)
+                    runs.remove(previous_run)
+                    previous_run.text += run.text
+                    runs.insert(id, previous_run)
+                else:
+                    previous_run.text += run.text
+                    runs.append(previous_run)
+            else:
+                previous_run = run
+                runs.append(previous_run)
+                
+        return runs
+    
+    def _manage_runs_text(self, runs):
+        text_to_translate = ""
+        if len(runs) == 0:
+            return None
+        
+        elif len(runs) > 1:
+            for run in runs:
+                if run != runs[-1]:
+                    text_to_translate += f"{run.text}"+"{end-run}"
+                    continue
+                text_to_translate += f"{run.text}"
+        else:
+            text_to_translate += runs[0].text
+
+        if text_to_translate.strip() == "" or text_to_translate.isdigit():
+            return None
+
+        return text_to_translate
     
     def translate_document(self, file: str, output_path: str, target_lang: str, source_lang: str = None, **kwargs):
         if isinstance(file, str):
@@ -39,45 +122,121 @@ class Translate:
     
     def translate_pptx(self, presentation_path: str, output_path: str, target_lang: str, source_lang: str = None, pages: int | list = None, glossary: deepl.GlossaryInfo | str = None, **kwargs):
         prs = Presentation(presentation_path)
-        
-        def runs_are_equal(run1, run2):
-            if (run1.font.bold != run2.font.bold):
-                if run1.font.bold is None and run2.font.bold != True:
-                    pass
-                elif run2.font.bold is None and run1.font.bold != True:
-                    pass
+
+        def translate_paragraph(shape):
+            for paragraph in shape.text_frame.paragraphs:
+                if not paragraph.text or paragraph.text.strip() == "":
+                    continue
+                
+                runs = self._process_runs(paragraph)
+
+                paragraph.clear()
+
+                text_to_translate = self._manage_runs_text(runs)
+                
+                if text_to_translate is None:
+                    continue
+                
+                in_bank = word_bank.get(text_to_translate, None)
+
+                if in_bank is not None:
+                    translated_text = word_bank[text_to_translate]
                 else:
-                    return False
-            if (run1.font.italic != run2.font.italic):
-                if run1.font.italic is None and run2.font.italic != True:
-                    pass
-                elif run2.font.italic is None and run1.font.italic != True:
-                    pass
-                else:
-                    return False
-            if (run1.font.underline != run2.font.underline):
-                if run1.font.underline is None and run2.font.underline != True:
-                    pass
-                elif run2.font.underline is None and run1.font.underline != True:
-                    pass
-                else:
-                    return False
-            if run1.font.size != run2.font.size:
-                if run1.font.size is None and run2.font.size != True:
-                    pass
-                elif run2.font.size is None and run1.font.size != True:
-                    pass
-                else:
-                    return False
-            if (hasattr(run1.font.color, 'rgb') and hasattr(run2.font.color, 'rgb')):
-                if run1.font.color.rgb != run2.font.color.rgb:
-                    print("color")
-                    return False
-            if 'came_from_pdf' in kwargs:
-                if kwargs['came_from_pdf'] == True:
-                    if run1.font.name != run2.font.name:
-                        return False
-            return True
+                    translated_text = self.translate_text(text_to_translate, target_lang, source_lang, **kwargs)
+                
+                runs_text = translated_text.split("{end-run}")
+
+                for id, run in enumerate(runs):
+                    try:
+                        runs_text[id]
+                    except IndexError:
+                        continue
+
+                    word_bank[run.text] = runs_text[id]
+
+                    run_copy = run
+
+                    run_copy.text = runs_text[id]
+
+                    new_run = paragraph.add_run()
+
+                    new_run.font.bold = run_copy.font.bold
+                    new_run.font.italic = run_copy.font.italic
+                    new_run.font.underline = run_copy.font.underline
+                    new_run.font.size = run_copy.font.size
+                    if hasattr(run.font.color, 'rgb'):
+                        new_run.font.color.rgb = run_copy.font.color.rgb
+                    new_run.font.name = run_copy.font.name
+                    new_run.text = run_copy.text
+
+        def translate_table(shape):
+            table = shape.table
+            for row in table.rows:
+                for cell in row.cells:
+                    original_text = cell.text.rstrip()
+                    
+                    if not original_text.strip() or original_text.isdigit():
+                        continue
+                    
+                    if word_bank.get(original_text):
+                        cell.text = word_bank[original_text]
+                        continue
+                    
+                    translated_text = self.translate_text(original_text, target_lang, source_lang, **kwargs)
+                    
+                    # translated_text = "isso é uma célula de tabela"
+                    
+                    word_bank[original_text] = translated_text
+                        
+                    cell.text = translated_text
+
+        def translate_chart(shape):
+            blob_stream = BytesIO(shape.chart._workbook.xlsx_part.blob)
+            sheets = pd.ExcelFile(blob_stream).sheet_names
+            df = pd.read_excel(blob_stream)
+            columns = df.columns.tolist()
+            
+            for index, column in enumerate(columns):
+                if not column.strip() or column.isdigit():
+                    continue
+                
+                if word_bank.get(column):
+                    columns[index] = word_bank[column]
+                    continue
+                
+                new_column = self.translate_text(column, target_lang, source_lang, **kwargs)
+                
+                # new_column = "isso é uma coluna"
+                
+                word_bank[column] = new_column
+                
+                columns[index] = new_column
+                
+            row_data = df.values.tolist()
+            for row in row_data:
+                for index, data in enumerate(row):
+                    if isinstance(data, (int,float)) or not data.strip():
+                        continue
+                    
+                    if word_bank.get(data):
+                        row[index] = word_bank[data]
+                        continue
+                    
+                    row[index] = self.translate_text(data, target_lang, source_lang, **kwargs)
+                    
+                    # row[index] = "isso é uma linha"
+                
+                    word_bank[data] = row[index]
+            
+            new_df = pd.DataFrame(data=row_data,columns=columns)
+            
+            blob = BytesIO()
+            new_df.to_excel(blob,index=False, sheet_name=sheets[0], engine='xlsxwriter')
+            blob.seek(0)
+            
+            blob_data = blob.getvalue()
+            
+            shape.chart._workbook.xlsx_part.blob = blob_data
 
         word_bank = {}
         try:
@@ -85,156 +244,22 @@ class Translate:
                 pages = [id for id, slide in enumerate(prs.slides)]
 
             for id, slide in enumerate(prs.slides):
-                if isinstance(pages, int) and id != pages:
+                if isinstance(pages, int) and (id + 1) != pages:
                     continue
-                elif isinstance(pages, list) and id not in pages:
+                elif isinstance(pages, list) and (id + 1) not in pages:
                     continue
                 for shape in slide.shapes:
                     if shape.has_text_frame:
-                        for paragraph in shape.text_frame.paragraphs:
-                            print(paragraph.text)
-                            runs = []
-                            previous_run = None
-                            for run in paragraph.runs:
-                                if run.text.strip() == "":
-                                    continue
-                                if previous_run is not None and runs_are_equal(previous_run, run):
-                                    if previous_run in runs:
-                                        id = runs.index(previous_run)
-                                        runs.remove(previous_run)
-                                        previous_run.text += run.text
-                                        runs.insert(id, previous_run)
-                                    else:
-                                        previous_run.text += run.text
-                                        runs.append(previous_run)
-                                else:
-                                    previous_run = run
-                                    runs.append(previous_run)
-
-                            paragraph.clear()
-
-                            text_to_translate = ""
-                            if len(runs) == 0:
-                                continue
-                            elif len(runs) > 1:
-                                for run in runs:
-                                    if run != runs[-1]:
-                                        text_to_translate += f"{run.text}"+"{end-run}"
-                                        continue
-                                    text_to_translate += f"{run.text}"
-                            else:
-                                text_to_translate += runs[0].text
-
-                            if text_to_translate.strip() == "" or text_to_translate.isdigit():
-                                continue
-
-                            # print(text_to_translate)
-
-                            if text_to_translate in word_bank:
-                                translated_text = text_to_translate
-                            else:
-                                translated_text = self.translate_text(text_to_translate, target_lang, source_lang, **kwargs)
-                            
-                            runs_text = translated_text.split("{end-run}")
-
-                            for id, run in enumerate(runs):
-                                try:
-                                    print(runs_text[id])
-                                except IndexError:
-                                    continue
-
-                                word_bank[run.text] = runs_text[id]
-
-                                # print(translated_text)
-
-                                run_copy = run
-
-                                run_copy.text = runs_text[id]
-
-                                new_run = paragraph.add_run()
-
-                                new_run.font.bold = run_copy.font.bold
-                                new_run.font.italic = run_copy.font.italic
-                                new_run.font.underline = run_copy.font.underline
-                                new_run.font.size = run_copy.font.size
-                                if hasattr(run.font.color, 'rgb'):
-                                    new_run.font.color.rgb = run_copy.font.color.rgb
-                                new_run.font.name = run_copy.font.name
-                                new_run.text = run_copy.text
+                        translate_paragraph(shape)
                                     
                     if shape.has_table:
-                        table = shape.table
-                        for row in table.rows:
-                            for cell in row.cells:
-                                original_text = cell.text.rstrip()
-                                
-                                if not original_text.strip() or original_text.isdigit():
-                                    continue
-                                
-                                if word_bank.get(original_text):
-                                    cell.text = word_bank[original_text]
-                                    continue
-                                
-                                translated_text = self.translate_text(original_text, target_lang, source_lang, **kwargs)
-                                
-                                # translated_text = "isso é uma célula de tabela"
-                                
-                                word_bank[original_text] = translated_text
-                                    
-                                cell.text = translated_text
+                        translate_table(shape)
                         
                     if shape.has_chart:
                         try:
-                            blob_stream = BytesIO(shape.chart._workbook.xlsx_part.blob)
-                            sheets = pd.ExcelFile(blob_stream).sheet_names
-                            df = pd.read_excel(blob_stream)
-                            columns = df.columns.tolist()
-                            
-                            for index, column in enumerate(columns):
-                                if not column.strip() or column.isdigit():
-                                    continue
-                                
-                                if word_bank.get(column):
-                                    columns[index] = word_bank[column]
-                                    continue
-                                
-                                new_column = self.translate_text(column, target_lang, source_lang, **kwargs)
-                                
-                                # new_column = "isso é uma coluna"
-                                
-                                word_bank[column] = new_column
-                                
-                                columns[index] = new_column
-                                
-                            row_data = df.values.tolist()
-                            for row in row_data:
-                                for index, data in enumerate(row):
-                                    if isinstance(data, (int,float)) or not data.strip():
-                                        continue
-                                    
-                                    if word_bank.get(data):
-                                        row[index] = word_bank[data]
-                                        continue
-                                    
-                                    row[index] = self.translate_text(data, target_lang, source_lang, **kwargs)
-                                    
-                                    # row[index] = "isso é uma linha"
-                                
-                                    word_bank[data] = row[index]
-                            
-                            new_df = pd.DataFrame(data=row_data,columns=columns)
-                            
-                            blob = BytesIO()
-                            new_df.to_excel(blob,index=False, sheet_name=sheets[0], engine='xlsxwriter')
-                            blob.seek(0)
-                            
-                            blob_data = blob.getvalue()
-                            
-                            shape.chart._workbook.xlsx_part.blob = blob_data
-                            
+                            translate_chart(shape)
                         except Exception as e:
-                            continue
-                                            
+                            print(e)            
         except:
             prs.save(output_path)
 
@@ -277,112 +302,47 @@ class Translate:
 
         word_bank = {}
 
-        def runs_are_equal(run1, run2):
-            if run1.style != run2.style:
-                if run1.style is None and run2.style != True:
-                    pass
-                elif run2.style is None and run1.style != True:
-                    pass
-                else:
-                    return False
-            if run1.bold != run2.bold:
-                if run1.bold is None and run2.bold != True:
-                    pass
-                elif run2.bold is None and run1.bold != True:
-                    pass
-                else:
-                    return False
-            if run1.italic != run2.italic:
-                if run1.italic is None and run2.italic != True:
-                    pass
-                elif run2.italic is None and run1.italic != True:
-                    pass
-                else:
-                    return False
-            if run1.underline != run2.underline:
-                if run1.underline is None and run2.underline != True:
-                    pass
-                elif run2.underline is None and run1.underline != True:
-                    pass
-                else:
-                    return False
-            if run1.font.size != run2.font.size:
-                if run1.size is None and run2.size != True:
-                    pass
-                elif run2.size is None and run1.size != True:
-                    pass
-                else:
-                    return False
-            if (hasattr(run1.font.color, 'rgb') and hasattr(run2.font.color, 'rgb')):
-                if run1.font.color.rgb != run2.font.color.rgb:
-                    return False
-            if 'came_from_pdf' in kwargs:
-                if kwargs['came_from_pdf'] == True:
-                    if run1.font.name != run2.font.name:
-                        return False
-            return True
-        
         def translate_paragraph(element):
             for paragraph in element.paragraphs:
-                if paragraph.text and paragraph.text.strip() !="":
-                    if run.text.strip() == "":
-                        continue
-                    for run in paragraph.runs:
-                        runs = []
-                        previous_run = None
+                if not paragraph.text or paragraph.text.strip() =="":
+                    continue
+                
+                runs = self._process_runs(paragraph)
 
-                        if previous_run is not None and runs_are_equal(previous_run, run):
-                            if previous_run in runs:
-                                id = runs.index(previous_run)
-                                runs.remove(previous_run)
-                                previous_run.text += run.text
-                                runs.insert(id, previous_run)
-                            else:
-                                previous_run.text += run.text
-                                runs.append(previous_run)
-                        else:
-                            previous_run = run
-                            runs.append(previous_run)
+                paragraph.clear()
 
-                    paragraph.clear()
-
-                    text_to_translate = ""
-                    if len(runs) == 0:
-                        continue
-                    elif len(runs) > 1:
-                        for run in runs:
-                            if run != runs[-1]:
-                                text_to_translate += f"{run.text}"+"{end-run}"
-                                continue
-                            text_to_translate += f"{run.text}"
-                    else:
-                        text_to_translate += runs[0].text
-
-                    if text_to_translate in word_bank:
-                        translated_text = text_to_translate
-                    else:
-                        translated_text = self.translate_text(text_to_translate, target_lang, source_lang, **kwargs)
-                    
-                    runs_text = translated_text.split("{end-run}")
-
-                    for id, run in enumerate(runs):
-                        try:
-                            print(runs_text[id])
-                        except IndexError:
-                            continue
-                        word_bank[run.text] = runs_text[id]
+                text_to_translate = self._manage_runs_text(runs)
                             
-                        run.text = runs_text[id]
+                if text_to_translate is None:
+                    continue
 
-                        new_run = paragraph.add_run()
+                in_bank = word_bank.get(text_to_translate, None)
 
-                        new_run.style = run.style
-                        new_run.bold = run.bold
-                        new_run.italic = run.italic
-                        new_run.underline = run.underline
-                        new_run.font.size = run.font.size
-                        new_run.font.color.rgb = run.font.color.rgb
-                        new_run.font.name = run.font.name
+                if in_bank is not None:
+                    translated_text = word_bank[text_to_translate]
+                else:
+                    translated_text = self.translate_text(text_to_translate, target_lang, source_lang, **kwargs)
+                
+                runs_text = translated_text.split("{end-run}")
+
+                for id, run in enumerate(runs):
+                    try:
+                        print(runs_text[id])
+                    except IndexError:
+                        continue
+                    word_bank[run.text] = runs_text[id]
+                        
+                    run.text = runs_text[id]
+
+                    new_run = paragraph.add_run()
+
+                    new_run.style = run.style
+                    new_run.bold = run.bold
+                    new_run.italic = run.italic
+                    new_run.underline = run.underline
+                    new_run.font.size = run.font.size
+                    new_run.font.color.rgb = run.font.color.rgb
+                    new_run.font.name = run.font.name
 
         def translate_tables():
             for table in doc.tables:
@@ -398,7 +358,6 @@ class Translate:
             return {"error": f"error but saved: {e}"}
         
         doc.save(output_path)
-        return {"sucess": "sucess"}
 
     def translate_excel(self, spreadsheet_path: str, output_path: str, source_column:str, target_column:str, target_lang: str,  source_lang: str = None, glossary: deepl.GlossaryInfo = None, **kwargs):
         df = pd.read_excel(spreadsheet_path)
@@ -429,7 +388,7 @@ class Translate:
             return text
 
     def gpt_translate_text(self, text: str, target_language:str, source_language:str = None, context: str | None = None):
-        prompt = f"Translate to {target_language}. Keep the formatting, capitalization, punctuation, use the fluent vocabulary of a native speaker." +" Don't translate {end-run}, don't remove it."
+        prompt = f"Translate to {target_language}, return original text if you can't. Keep the formatting, capitalization, punctuation, use the fluent vocabulary of a native." +" Don't translate {end-run}, don't remove it."
         
         if context:
             prompt += " "+context
@@ -454,6 +413,5 @@ class Translate:
         if self.model.__contains__("gpt"):
             return self.gpt_translate_text(*args,**kwargs)
         return self.deepl_translate_text(*args,**kwargs)
-    
 
 translate = Translate()
