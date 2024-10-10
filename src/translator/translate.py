@@ -3,6 +3,7 @@ import deepl
 import pandas as pd
 from docx import Document
 from pptx import Presentation
+from pptx.chart.data import CategoryChartData
 from openai import OpenAI
 from io import BytesIO
 from pypdf import PdfReader, PdfWriter
@@ -192,8 +193,10 @@ class Translate:
 
         def translate_chart(shape):
             blob_stream = BytesIO(shape.chart._workbook.xlsx_part.blob)
-            sheets = pd.ExcelFile(blob_stream).sheet_names
+            # sheets = pd.ExcelFile(blob_stream).sheet_names
             df = pd.read_excel(blob_stream)
+            blob_stream.close()
+            
             columns = df.columns.tolist()
             
             for index, column in enumerate(columns):
@@ -211,8 +214,10 @@ class Translate:
                 word_bank[column] = new_column
                 
                 columns[index] = new_column
+            columns.pop(0)
                 
             row_data = df.values.tolist()
+            categories = []
             for row in row_data:
                 for index, data in enumerate(row):
                     if isinstance(data, (int,float)) or not data.strip():
@@ -225,28 +230,42 @@ class Translate:
                     row[index] = self.translate_text(data, target_lang, source_lang, **kwargs)
                     
                     # row[index] = "isso é uma linha"
-                
+                    
                     word_bank[data] = row[index]
+                    
+                categories.append(row[0])
+                row.pop(0)
+                
+            df = None
             
-            new_df = pd.DataFrame(data=row_data,columns=columns)
+            # new_df = pd.DataFrame(data=row_data,columns=columns)
             
-            blob = BytesIO()
-            new_df.to_excel(blob,index=False, sheet_name=sheets[0], engine='xlsxwriter')
-            blob.seek(0)
+            # blob = BytesIO()
+            # new_df.to_excel(blob,index=False, sheet_name=sheets[0], engine='openpyxl')
+            # blob.seek(0)
             
-            blob_data = blob.getvalue()
+            # blob_data = blob.getvalue()
             
-            shape.chart._workbook.xlsx_part.blob = blob_data
+            chart_data = CategoryChartData()
+            chart_data.categories = categories
+            for index, column in enumerate(columns):
+                series_data = tuple(row[index] for row in row_data)
 
+                chart_data.add_series(column, series_data)
+
+            shape.chart.replace_data(chart_data)
+
+            # shape.chart._workbook.xlsx_part.blob = blob_data
+            
         word_bank = {}
         try:
             if not pages:
-                pages = [id for id, slide in enumerate(prs.slides)]
+                pages = [id + 1 for id, slide in enumerate(prs.slides)]
 
             for id, slide in enumerate(prs.slides):
-                if isinstance(pages, int) and (id + 1) != pages:
+                if isinstance(pages, int) and id != pages:
                     continue
-                elif isinstance(pages, list) and (id + 1) not in pages:
+                elif isinstance(pages, list) and id not in pages:
                     continue
                 for shape in slide.shapes:
                     if shape.has_text_frame:
